@@ -1,0 +1,1 @@
+export const OFFSCREEN_DOCUMENT_PATH = 'src/offscreen/offscreen.html';

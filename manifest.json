@@ -1,0 +1,46 @@
+{
+  "manifest_version": 3,
+  "name": "Prayer Focus",
+  "version": "1.0",
+  "description": "تنبيهات الصلاة الذكية والخشوع",
+  "permissions": [
+    "storage",
+    "alarms",
+    "activeTab",
+    "geolocation",
+    "offscreen"
+  ],
+  "background": {
+    "service_worker": "src/background/service-worker.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "src/popup/popup.html",
+    "default_icon": {
+      "128": "assets/icon-128.png"
+    }
+  },
+  "icons": {
+    "128": "assets/icon-128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/content/alert.js"],
+      "css": ["src/content/alert.css"],
+      "run_at": "document_end"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "assets/adhan.mp3",
+        "assets/iqama.mp3",
+        "assets/icon16.png",
+        "assets/icon48.png",
+        "assets/icon128.png"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

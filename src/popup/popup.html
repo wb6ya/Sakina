@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prayer Focus</title>
+    <link rel="stylesheet" href="popup.css">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&family=Amiri:wght@700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div id="loading-view" class="view">
+        <div class="loader"></div>
+        <p>جاري تحميل البيانات...</p>
+    </div>
+
+    <div id="onboarding-view" class="view hidden">
+        <div class="welcome-card">
+            <img src="../../assets/icon-128.png" alt="Logo" class="logo-img">
+            <h2>مرحباً بك</h2>
+            <p>لضبط مواقيت الصلاة بدقة</p>
+            
+            <button id="btn-auto-locate" class="btn primary-btn">📍 تحديد تلقائي (GPS)</button>
+            
+            <div class="divider">أو بحث يدوي</div>
+            
+            <div class="search-box">
+                <div class="input-wrapper" style="position: relative;">
+                    <input type="text" id="city-input" placeholder="ابدأ بكتابة المدينة (مثال: London)..." autocomplete="off">
+                    <ul id="suggestions-list" class="suggestions-list hidden"></ul>
+                </div>
+                
+                <input type="text" id="country-input" placeholder="الدولة (اختياري)">
+                
+                <button id="btn-manual-search" class="btn secondary-btn">بحث</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-view" class="view hidden">
+        <header class="main-header">
+            <div class="location-badge" id="location-badge-btn">
+                <span id="location-name">--</span> 📍
+            </div>
+            <button id="btn-settings" class="icon-btn">⚙️</button>
+        </header>
+
+    <div class="countdown-card" id="dynamic-card">
+        <div class="atmosphere-container">
+            <div class="stars-layer"></div>
+            <div class="clouds-layer">
+                <div class="cloud cloud-1"></div>
+                <div class="cloud cloud-2"></div>
+            </div>
+        </div>
+        
+        <div class="card-content">
+            <p class="status-text" id="date-display">الوقت المتبقي للصلاة القادمة</p>
+            
+            <div id="countdown">00:00:00</div>
+            
+            <h2 id="next-prayer-name">...</h2>
+        </div>
+    </div>
+
+        <div class="prayers-list" id="prayers-list">
+            </div>
+    </div>
+
+    <div id="settings-view" class="view overlay-view hidden">
+        <header class="settings-header">
+            <h3>الإعدادات</h3>
+            <button id="btn-close-settings" class="close-btn">×</button>
+        </header>
+
+        <div class="settings-content">
+            <div class="setting-group">
+                <label>تنبيه قبل الأذان (دقيقة)</label>
+                <input type="number" id="input-pre-time" min="1" max="60" value="10">
+            </div>
+
+            <div class="setting-group">
+                <label>وقت الإقامة (دقيقة)</label>
+                <input type="number" id="input-iqama-time" min="1" max="60" value="20">
+            </div>
+
+            <div class="setting-group checkbox-group">
+                <label>صوت الأذان</label>
+                <label class="switch">
+                    <input type="checkbox" id="toggle-adhan-sound" checked>
+                    <span class="slider round"></span>
+                </label>
+            </div>
+
+            <div class="setting-group checkbox-group">
+                <label>تنبيه الشروق</label>
+                <label class="switch">
+                    <input type="checkbox" id="toggle-sunrise">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+
+            <div class="setting-group checkbox-group">
+                <label>شاشة كاملة وقت الإقامة (وضع الخشوع)</label>
+                <label class="switch">
+                    <input type="checkbox" id="toggle-fullscreen-iqama">
+                    <span class="slider round"></span>
+                </label>
+            </div>
+
+            <div class="setting-group">
+                <label data-i18n="labelLanguage">اللغة / Language</label>
+                <select id="language-select" style="padding: 8px; border-radius: 6px; background: #333; color: white; border: 1px solid #444; width: 100px;">
+                    <option value="ar">العربية</option>
+                    <option value="en">English</option>
+                </select>
+            </div>
+
+            <div style="width: 100%; height: 1px; background: #333; margin: 15px 0;"></div>
+
+            <hr>
+            
+            <div class="setting-actions">
+                <button id="btn-save-settings" class="btn primary-btn">حفظ التغييرات</button>
+                <button id="btn-reset-location" class="btn danger-btn" style="margin-top: 10px;">🔄 تغيير الموقع</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="custom-modal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="modal-icon" id="modal-icon">?</div>
+            <h3 id="modal-title">عنوان</h3>
+            <p id="modal-message">رسالة</p>
+            
+            <div class="modal-actions" id="modal-actions-confirm">
+                <button id="btn-modal-yes" class="btn primary-btn">نعم، تأكيد</button>
+                <button id="btn-modal-no" class="btn secondary-btn">إلغاء</button>
+            </div>
+            
+            <div class="modal-actions hidden" id="modal-actions-alert">
+                <button id="btn-modal-ok" class="btn secondary-btn">موافق</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="popup.js"></script>
+</body>
+</html>
