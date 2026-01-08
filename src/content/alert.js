@@ -1,24 +1,18 @@
 /**
  * @file alert.js
- * @description نظام العرض الذكي (يتبع المستخدم + دعم الترجمة)
+ * @description نظام العرض الذكي (تحديث تلقائي فوري + منع الرمشة)
  */
 
 let timerInterval = null;
+let lastRenderedState = null; // 🆕 لتخزين آخر حالة تم رسمها ومنع التكرار
 
 // =================================================
-// 1. استقبال الأوامر (للرسم المباشر أو الإغلاق)
+// 1. استقبال الأوامر
 // =================================================
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "SHOW_PRAYER_ALERT") {
-        createCustomAlert(
-            request.title, 
-            request.message, 
-            request.type, 
-            request.timerData, 
-            request.quoteData, 
-            request.isFullscreen,
-            request.btnLabels // 🆕 استقبال نصوص الأزرار
-        );
+        // إذا جاء أمر مباشر من الخلفية، ننفذه فوراً
+        processAlertUpdate(request);
     }
     else if (request.action === "FORCE_CLOSE_ALERT") {
         removeAlert(true);
@@ -26,7 +20,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 // =================================================
-// 2. مزامنة الإغلاق (إذا أغلقت في تبويب، يغلق في الكل)
+// 2. مزامنة الإغلاق
 // =================================================
 chrome.storage.onChanged.addListener((changes, area) => {
     if (area === 'local' && changes.dismiss_timestamp) {
@@ -35,39 +29,37 @@ chrome.storage.onChanged.addListener((changes, area) => {
 });
 
 // =================================================
-// 3. الذكاء الحركي (Follow Me Logic) 🏃‍♂️
+// 3. الذكاء الحركي + النبض (Auto-Refresh Logic) 💓
 // =================================================
 
 // أ) عند تحميل الصفحة
 setTimeout(checkAndDrawAlert, 500);
 
-// ب) عند الانتقال لهذا التبويب (Focus/Visibility)
+// ب) عند الانتقال لهذا التبويب
 document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === 'visible') {
         checkAndDrawAlert();
     }
 });
 
-// دالة تفحص الخلفية وترسم التنبيه
+// ج) 🆕 النبض: فحص الخلفية كل ثانيتين للتحديث التلقائي
+setInterval(() => {
+    if (document.visibilityState === 'visible') {
+        checkAndDrawAlert();
+    }
+}, 2000);
+
+// دالة تفحص الخلفية
 function checkAndDrawAlert() {
     try {
         chrome.runtime.sendMessage({ action: "GET_ACTIVE_ALERT" }, (response) => {
-            // هل يوجد تنبيه نشط في الخلفية؟
             if (response && response.action === "SHOW_PRAYER_ALERT") {
-                // نرسمه (دالة الرسم ذكية بما يكفي لعدم التكرار)
-                createCustomAlert(
-                    response.title, 
-                    response.message, 
-                    response.type, 
-                    response.timerData, 
-                    response.quoteData,
-                    response.isFullscreen,
-                    response.btnLabels // 🆕 تمرير نصوص الأزرار
-                );
+                processAlertUpdate(response);
             } else {
-                // إذا قالت الخلفية "لا يوجد تنبيه"، نتأكد من تنظيف الشاشة
+                // الخلفية تقول لا يوجد تنبيه، فإذا كان لدينا تنبيه معروض نحذفه
                 if (document.getElementById('prayer-focus-alert')) {
                     removeAlert(true);
+                    lastRenderedState = null; // تصفير الحالة
                 }
             }
         });
@@ -76,17 +68,46 @@ function checkAndDrawAlert() {
     }
 }
 
+// 🆕 دالة ذكية لتقرير هل نعيد الرسم أم لا
+function processAlertUpdate(data) {
+    // ننشئ "بصمة" للحالة الجديدة (العنوان + النوع + الرسالة)
+    // لا نضمن العداد لأنه يتغير محلياً
+    const newStateSignature = JSON.stringify({
+        title: data.title,
+        type: data.type,
+        msg: data.message,
+        q: data.quoteData
+    });
+
+    // إذا كانت البصمة مطابقة لما هو معروض حالياً، لا تفعل شيئاً (منع الرمشة)
+    if (lastRenderedState === newStateSignature) {
+        return; 
+    }
+
+    // إذا اختلفت، نرسم من جديد
+    lastRenderedState = newStateSignature;
+    createCustomAlert(
+        data.title, 
+        data.message, 
+        data.type, 
+        data.timerData, 
+        data.quoteData,
+        data.isFullscreen,
+        data.btnLabels
+    );
+}
+
 // =================================================
 // 4. دالة الرسم (Create Alert)
 // =================================================
 function createCustomAlert(title, message, type, timerData, quoteData, isFullscreen, btnLabels) {
-    // لمنع الوميض: نحذف القديم فوراً ونضع الجديد
+    // حذف القديم فوراً
     removeAlert(true);
 
     const alertBox = document.createElement('div');
     alertBox.id = 'prayer-focus-alert';
     
-    // 🆕 تحديد الاتجاه بناءً على نص زر الإغلاق (إذا كان "Close" فهو إنجليزي)
+    // تحديد الاتجاه
     const isEnglish = btnLabels && btnLabels.close === "Close";
     alertBox.style.direction = isEnglish ? "ltr" : "rtl";
     alertBox.setAttribute('lang', isEnglish ? 'en' : 'ar');
@@ -98,7 +119,6 @@ function createCustomAlert(title, message, type, timerData, quoteData, isFullscr
     const isAdhan = type === 'ADHAN';
     const icon = isAdhan ? '🕌' : (type === 'IQAMA' ? '⚡' : (title.includes('Sunrise') || title.includes('الشروق') ? '🌅' : '⏳'));
     
-    // 🆕 استخدام النصوص المترجمة للأزرار
     const stopAudioText = btnLabels ? btnLabels.stopAudio : "إيقاف الصوت";
     const closeText = btnLabels ? btnLabels.close : "إغلاق";
 
@@ -132,14 +152,14 @@ function createCustomAlert(title, message, type, timerData, quoteData, isFullscr
 
     document.body.appendChild(alertBox);
 
-    if (timerData) startLiveTimer(timerData, isEnglish); // 🆕 نمرر اللغة للعداد
+    if (timerData) startLiveTimer(timerData, isEnglish);
 
     const muteBtn = alertBox.querySelector('#pf-mute-btn');
     if (muteBtn) {
         muteBtn.onclick = (e) => {
             e.stopPropagation();
             chrome.runtime.sendMessage({ action: "STOP_AUDIO" });
-            muteBtn.innerHTML = btnLabels ? btnLabels.muted : "تم الإسكات"; // 🆕 نص "تم الإسكات" مترجم
+            muteBtn.innerHTML = btnLabels ? btnLabels.muted : "تم الإسكات";
             muteBtn.disabled = true;
             muteBtn.style.opacity = "0.6";
         };
@@ -149,14 +169,17 @@ function createCustomAlert(title, message, type, timerData, quoteData, isFullscr
         chrome.runtime.sendMessage({ action: "STOP_AUDIO" });
         chrome.runtime.sendMessage({ action: "ALERT_CLOSED" });
         chrome.storage.local.set({ dismiss_timestamp: Date.now() });
+        lastRenderedState = null; // تصفير الحالة
         removeAlert();
     };
 
-    // إغلاق تلقائي (لغير الشاشة الكاملة)
     if (!isFullscreen) {
         const duration = (timerData || quoteData) ? 90000 : 20000;
         setTimeout(() => {
-            if (document.body.contains(alertBox)) removeAlert();
+            if (document.body.contains(alertBox)) {
+                removeAlert();
+                lastRenderedState = null;
+            }
         }, duration);
     }
 }
@@ -164,13 +187,12 @@ function createCustomAlert(title, message, type, timerData, quoteData, isFullscr
 // =================================================
 // 5. دوال مساعدة
 // =================================================
-function startLiveTimer(data, isEnglish) { // 🆕 استقبال اللغة
+function startLiveTimer(data, isEnglish) {
     const timerDisplay = document.getElementById('pf-timer-display');
     if (!timerDisplay) return;
     
     if (timerInterval) clearInterval(timerInterval);
 
-    // نصوص العداد حسب اللغة
     const txtRemaining = isEnglish ? "Remaining: " : "متبقي: ";
     const txtElapsed = isEnglish ? "Elapsed: " : "مرَّ: ";
 
@@ -180,9 +202,13 @@ function startLiveTimer(data, isEnglish) { // 🆕 استقبال اللغة
             const target = Number(data.targetTime);
             if (!target) return;
             const diff = target - now;
+            
+            // 🆕 إذا انتهى الوقت، نفرض تحديثاً فورياً
             if (diff <= 0) {
                 timerDisplay.textContent = "00:00:00";
                 clearInterval(timerInterval);
+                // ننتظر ثانية ثم نفحص الخلفية (لأن الحالة ستكون قد تغيرت في الخلفية)
+                setTimeout(() => checkAndDrawAlert(), 1000);
             } else {
                 timerDisplay.textContent = txtRemaining + msToTime(diff);
                 timerDisplay.className = "pf-timer pf-timer-countdown";

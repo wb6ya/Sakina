@@ -1,7 +1,7 @@
 import { OFFSCREEN_DOCUMENT_PATH } from '../utils/constants.js';
 import { getRandomQuote } from '../utils/quotes.js'; 
 import { getNextPrayer, parsePrayerTime } from '../utils/time-utils.js';
-import { TRANSLATIONS } from '../utils/translations.js'; // 🆕 استيراد الترجمة
+import { TRANSLATIONS } from '../utils/translations.js'; 
 
 let activeNotification = null;
 let notificationTimeout = null;
@@ -49,7 +49,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true; 
 });
 
-// --- دالة الجدولة الرئيسية ---
+// --- دالة الجدولة ---
 async function scheduleNextPrayer() {
     const times = await chrome.storage.local.get(STORAGE_KEYS.PRAYER_TIMES);
     const location = await chrome.storage.local.get(STORAGE_KEYS.USER_LOCATION);
@@ -69,12 +69,10 @@ async function scheduleNextPrayer() {
     const nextPrayerTime = nextPrayerObj.time.getTime();
     const now = Date.now();
     
-    // جدولة فقط إذا كان الوقت في المستقبل
     if (nextPrayerTime > now) {
         chrome.alarms.create(ALARM_NAMES.NEXT_PRAYER, { when: nextPrayerTime });
-        console.log(`⏰ الصلاة القادمة: ${nextPrayerObj.key} في ${nextPrayerObj.time.toLocaleTimeString()}`);
+        console.log(`⏰ Next Prayer: ${nextPrayerObj.key} at ${nextPrayerObj.time.toLocaleTimeString()}`);
 
-        // 🔥 تحديث القيمة الافتراضية إلى 15 دقيقة
         const preMinutes = Number(appSettings.preAdhanMinutes || 15);
         const preTime = nextPrayerTime - (preMinutes * 60 * 1000);
 
@@ -94,52 +92,37 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     const settings = await chrome.storage.local.get(STORAGE_KEYS.SETTINGS);
     const timesData = await chrome.storage.local.get(STORAGE_KEYS.PRAYER_TIMES);
     const locationData = await chrome.storage.local.get(STORAGE_KEYS.USER_LOCATION);
-
     const appSettings = settings.app_settings || {};
     const shouldPlaySound = appSettings.adhanSound !== false;
-    
-    // 🔥 تحديث القيمة الافتراضية للإقامة إلى 25 دقيقة
     const iqamaMinutes = Number(appSettings.iqamaMinutes || 25);
 
-    // نحتاج معرفة الصلاة القادمة لتمرير اسمها للترجمة
     const timings = timesData.prayer_times;
     const timezone = locationData.user_location?.timezone;
     const enableSunrise = appSettings.enableSunrise === true;
     const nextPrayerObj = timings ? getNextPrayer(timings, timezone, enableSunrise) : null;
     const prayerKey = nextPrayerObj ? nextPrayerObj.key : null;
 
-    // 1. قبل الصلاة
     if (alarm.name === ALARM_NAMES.PRE_PRAYER) {
-        // 🔥 تحديث القيمة الافتراضية إلى 15 دقيقة
         const preMinutes = Number(appSettings.preAdhanMinutes || 15);
         const targetAzanTime = Date.now() + (preMinutes * 60 * 1000);
-        
-        // نرسل المفاتيح (keys) بدلاً من النص الثابت، ونمرر اسم الصلاة
         showNotification('alertPreTitle', 'alertPreMsg', "PRE", { mode: 'COUNTDOWN', targetTime: targetAzanTime }, null, prayerKey);
     } 
-    // 2. وقت الأذان (أو الشروق)
     else if (alarm.name === ALARM_NAMES.NEXT_PRAYER) {
         let isSunrise = false;
-        
-        // التحقق هل هو شروق؟
         if (timings) {
             const sunriseTime = parsePrayerTime(timings['Sunrise'], new Date());
             const now = new Date();
-            if (Math.abs(now - sunriseTime) < 2 * 60 * 1000) {
-                isSunrise = true;
-            }
+            if (Math.abs(now - sunriseTime) < 2 * 60 * 1000) isSunrise = true;
         }
 
-        // تحديد المفاتيح بناءً على النوع
         const titleKey = isSunrise ? 'alertSunriseTitle' : 'alertAdhanTitle';
         const msgKey = isSunrise ? 'alertSunriseMsg' : 'alertAdhanMsg';
 
         showNotification(titleKey, msgKey, "ADHAN", { mode: 'COUNTUP', startTime: Date.now() }, null, isSunrise ? 'Sunrise' : prayerKey);
         
-        // صوت الأذان (إلا في الشروق)
-        if (shouldPlaySound && !isSunrise) playAudio('assets/adhan.mp3');
+        // تشغيل صوت الأذان (إلا في الشروق)
+        if (shouldPlaySound && !isSunrise) playAudio('ADHAN');
 
-        // جدولة الإقامة (إلا في الشروق)
         if (!isSunrise) {
             const iqamaTime = Date.now() + (iqamaMinutes * 60 * 1000);
             chrome.alarms.create(ALARM_NAMES.IQAMA, { when: iqamaTime });
@@ -147,47 +130,40 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
         
         scheduleNextPrayer();
     }
-    // 3. وقت الإقامة
     else if (alarm.name === ALARM_NAMES.IQAMA) {
         const quote = getRandomQuote();
-        // نرسل مفتاح عنوان الإقامة
-        showNotification('alertIqamaTitle', quote.text, "IQAMA", null, quote); // نرسل نص الاقتباس كما هو مؤقتاً، ستتم معالجته في showNotification
-        if (shouldPlaySound) playAudio('assets/iqama.mp3');
+        showNotification('alertIqamaTitle', quote.text, "IQAMA", null, quote);
+        
+        // تشغيل صوت الإقامة
+        if (shouldPlaySound) playAudio('IQAMA');
     }
 });
 
-// --- دالة مساعدة لجلب الترجمة واللغة ---
+// --- الدوال المساعدة ---
 async function getTranslation() {
     const settings = await chrome.storage.local.get(STORAGE_KEYS.SETTINGS);
     const lang = settings.app_settings?.language || 'ar';
     return { t: TRANSLATIONS[lang], lang };
 }
 
-// --- دالة العرض (المحدثة للترجمة) ---
 async function showNotification(titleKey, msgKey, type = 'NORMAL', timerData = null, quoteData = null, prayerNameKey = null) {
     const settings = await chrome.storage.local.get(STORAGE_KEYS.SETTINGS);
     const appSettings = settings.app_settings || {};
     const isFullscreen = (type === 'IQAMA' && appSettings.fullscreenIqama === true);
 
-    // جلب الترجمة
     const { t, lang } = await getTranslation();
-
-    // 1. ترجمة العنوان والرسالة
-    let title = t[titleKey] || titleKey; // إذا لم يجد المفتاح يستخدم النص كما هو (للحماية)
+    let title = t[titleKey] || titleKey;
     let message = t[msgKey] || msgKey;
 
-    // 2. استبدال اسم الصلاة في الرسالة (مثلاً: "اقترب موعد صلاة {prayer}")
     if (prayerNameKey && message && message.includes('{prayer}')) {
         const translatedPrayerName = t[`prayer${prayerNameKey}`] || prayerNameKey;
         message = message.replace('{prayer}', translatedPrayerName);
     }
     
-    // في حالة الإقامة، الرسالة هي الاقتباس، لذا لا نترجمها كـ Key بل نعالج الاقتباس نفسه
     if (type === 'IQAMA' && quoteData) {
         message = lang === 'en' && quoteData.text_en ? quoteData.text_en : quoteData.text;
     }
 
-    // 3. معالجة الاقتباس (عربي/إنجليزي)
     let finalQuote = null;
     if (quoteData) {
         finalQuote = {
@@ -197,57 +173,88 @@ async function showNotification(titleKey, msgKey, type = 'NORMAL', timerData = n
         };
     }
 
-    // 4. تجهيز نصوص الأزرار
-    const btnLabels = {
-        stopAudio: t.btnStopAudio,
-        muted: t.btnMuted,
-        close: t.btnClose
-    };
+    const btnLabels = { stopAudio: t.btnStopAudio, muted: t.btnMuted, close: t.btnClose };
 
     const payload = {
         action: "SHOW_PRAYER_ALERT",
-        title, 
-        message, 
-        type, 
-        timerData, 
-        quoteData: finalQuote, 
-        isFullscreen,
-        btnLabels // نرسل نصوص الأزرار للواجهة
+        title, message, type, timerData, quoteData: finalQuote, isFullscreen, btnLabels
     };
 
     activeNotification = payload;
     sendToActiveTab(payload);
 
     if (notificationTimeout) clearTimeout(notificationTimeout);
-    notificationTimeout = setTimeout(() => {
-        activeNotification = null;
-    }, isFullscreen ? 300000 : 90000);
+    notificationTimeout = setTimeout(() => { activeNotification = null; }, isFullscreen ? 300000 : 90000);
 }
 
 async function sendToActiveTab(payload) {
     try {
         const tabs = await chrome.tabs.query({ active: true });
         const targetTab = tabs.find(t => t.url && !t.url.startsWith('chrome://') && !t.url.startsWith('edge://'));
-
-        if (targetTab) {
-            chrome.tabs.sendMessage(targetTab.id, payload).catch(err => {});
-        }
+        if (targetTab) chrome.tabs.sendMessage(targetTab.id, payload).catch(err => {});
     } catch (e) { console.error(e); }
 }
 
-// --- الصوت ---
-async function playAudio(source, volume = 1.0) {
-    if (await hasOffscreenDocument()) {
-        chrome.runtime.sendMessage({ action: 'PLAY_AUDIO', source, volume });
+// --- 🔥 دالة الصوت المصححة (الحل الجذري) ---
+async function playAudio(type, volume = 1.0) {
+    let finalSource = '';
+    let storageKey = null;
+
+    if (type === 'ADHAN') {
+        // 🔥 استخدام getURL للحصول على الرابط الكامل الصحيح
+        finalSource = chrome.runtime.getURL('assets/adhan.mp3'); 
+        storageKey = 'custom_adhan_sound';
+    } else if (type === 'IQAMA') {
+        // 🔥 استخدام getURL للحصول على الرابط الكامل الصحيح
+        finalSource = chrome.runtime.getURL('assets/iqama.mp3'); 
+        storageKey = 'custom_iqama_sound';
     } else {
+        // إذا كان رابطاً مباشراً، نتأكد أنه كامل أو نتركه كما هو
+        finalSource = type;
+    }
+
+    // التحقق من وجود ملف مخصص
+    if (storageKey) {
+        try {
+            const bytes = await chrome.storage.local.getBytesInUse(storageKey);
+            if (bytes > 0) {
+                const data = await chrome.storage.local.get(storageKey);
+                if (data[storageKey]) {
+                    finalSource = data[storageKey]; // استبدال بالملف المخصص (Base64)
+                    console.log(`🔊 Playing CUSTOM sound for ${type}`);
+                }
+            } else {
+                console.log(`🔊 Playing DEFAULT sound for ${type}: ${finalSource}`);
+            }
+        } catch (e) {
+            console.warn("Error checking custom sound:", e);
+        }
+    }
+
+    // التأكد من وجود Offscreen
+    if (!(await hasOffscreenDocument())) {
         await chrome.offscreen.createDocument({
             url: OFFSCREEN_DOCUMENT_PATH,
             reasons: ['AUDIO_PLAYBACK'],
             justification: 'Prayer notification'
         });
-        setTimeout(() => {
-            chrome.runtime.sendMessage({ action: 'PLAY_AUDIO', source, volume });
-        }, 500);
+        await new Promise(r => setTimeout(r, 200));
+    }
+
+    // الإرسال
+    if (finalSource.startsWith('data:')) {
+        // ملف مخصص (Base64) - نقطعه
+        const CHUNK_SIZE = 200 * 1024;
+        const totalLength = finalSource.length;
+        for (let i = 0; i < totalLength; i += CHUNK_SIZE) {
+            const chunk = finalSource.slice(i, i + CHUNK_SIZE);
+            const isLast = (i + CHUNK_SIZE) >= totalLength;
+            chrome.runtime.sendMessage({ action: 'AUDIO_CHUNK', data: chunk, isLast: isLast, volume: volume });
+            await new Promise(r => setTimeout(r, 5));
+        }
+    } else {
+        // ملف افتراضي (رابط)
+        chrome.runtime.sendMessage({ action: 'PLAY_AUDIO', source: finalSource, volume: volume });
     }
 }
 

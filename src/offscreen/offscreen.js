@@ -1,32 +1,51 @@
-/**
- * @file offscreen.js
- * @description مسؤول عن تشغيل الصوت لأن Service Worker لا يستطيع فعل ذلك مباشرة.
- */
+let audioBuffer = '';
 
-// الاستماع للرسائل من الخلفية
 chrome.runtime.onMessage.addListener((msg) => {
     if (msg.action === 'PLAY_AUDIO') {
-        playAudio(msg.source, msg.volume);
-    } else if (msg.action === 'STOP_AUDIO') {
+        console.log("[Offscreen] Received PLAY_AUDIO:", msg.source);
+        playSource(msg.source, msg.volume);
+    } 
+    else if (msg.action === 'AUDIO_CHUNK') {
+        audioBuffer += msg.data;
+        if (msg.isLast) {
+            console.log("[Offscreen] Full custom file received.");
+            playSource(audioBuffer, msg.volume);
+            audioBuffer = ''; 
+        }
+    } 
+    else if (msg.action === 'STOP_AUDIO') {
         stopAudio();
     }
 });
 
-function playAudio(source, volume = 0.5) { // جعلنا الافتراضي 0.5 (نصف الصوت)
+function playSource(source, volume = 1.0) {
     const audio = document.getElementById('audio-player');
+    if (!audio) return;
     
-    audio.src = chrome.runtime.getURL(source);
-    audio.volume = volume; // تطبيق مستوى الصوت
+    audio.pause();
+    audio.currentTime = 0;
+    
+    if (!source) {
+        console.error("[Offscreen] No source to play!");
+        return;
+    }
+
+    audio.src = source;
+    audio.volume = volume;
     
     audio.play().then(() => {
-        console.log(`[Audio] Playing: ${source}`);
+        console.log(`[Offscreen] Playing successfully.`);
     }).catch(err => {
-        console.error("[Audio] Play Error:", err);
+        console.warn("[Offscreen] Play Error:", err);
     });
 }
 
 function stopAudio() {
     const audio = document.getElementById('audio-player');
-    audio.pause();
-    audio.currentTime = 0;
+    if (audio) {
+        audio.pause();
+        audio.currentTime = 0;
+        audio.removeAttribute('src');
+        audioBuffer = '';
+    }
 }

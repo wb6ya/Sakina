@@ -109,8 +109,10 @@ function applyLanguage(lang) {
     const updateLabel = (inputId, text) => {
         const input = document.getElementById(inputId);
         if (input) {
-            const group = input.closest('.setting-group');
+            // نبحث عن أقرب container سواء كان setting-group أو غيره
+            const group = input.closest('.setting-group') || input.parentElement;
             if (group) {
+                // نبحث عن Label لا يكون switch
                 const labelEl = group.querySelector('label:not(.switch)');
                 if (labelEl) labelEl.textContent = text;
             }
@@ -433,32 +435,44 @@ function msToTime(duration) {
 }
 
 // --- الإعدادات ---
-btnSettings.addEventListener('click', async () => {
-    const settings = await getFromStorage(STORAGE_KEYS.SETTINGS) || {};
-    const lang = settings.language || 'ar';
-    applyLanguage(lang);
+if (btnSettings) {
+    btnSettings.addEventListener('click', async () => {
+        // 1. تجهيز البيانات
+        const settings = await getFromStorage(STORAGE_KEYS.SETTINGS) || {};
+        const lang = settings.language || 'ar';
+        applyLanguage(lang);
 
-    toggleAdhan.checked = settings.adhanSound !== false;
-    toggleSunrise.checked = settings.enableSunrise === true; 
-    toggleFullscreen.checked = settings.fullscreenIqama === true;
-    
-    inputPreTime.value = settings.preAdhanMinutes || 15;
-    inputIqamaTime.value = settings.iqamaMinutes || 25;
-    
-    if(langSelect) langSelect.value = lang;
+        toggleAdhan.checked = settings.adhanSound !== false;
+        toggleSunrise.checked = settings.enableSunrise === true; 
+        toggleFullscreen.checked = settings.fullscreenIqama === true;
+        
+        inputPreTime.value = settings.preAdhanMinutes || 15;
+        inputIqamaTime.value = settings.iqamaMinutes || 25;
+        
+        if (langSelect) langSelect.value = lang;
 
-    views.settings.classList.remove('hidden');
-    setTimeout(() => views.settings.classList.add('active'), 10);
-});
+        checkCustomSounds();
+
+        // 2. إظهار الصفحة (Slide Up Animation)
+        // لا نستخدم classList.remove('hidden') لأننا نعتمد على transform في CSS
+        // لكن للتأكد، نزيل hidden أولاً ثم نضيف active
+        views.settings.classList.remove('hidden'); 
+        
+        // تأخير بسيط جداً لتفعيل الانيميشن
+        requestAnimationFrame(() => {
+            views.settings.classList.add('active');
+        });
+    });
+}
 
 langSelect.addEventListener('change', (e) => {
     const selectedLang = e.target.value;
     applyLanguage(selectedLang);
 });
 
-btnCloseSettings.addEventListener('click', () => closeSettingsView());
+if (btnCloseSettings) btnCloseSettings.addEventListener('click', () => closeSettingsView());
 
-btnSaveSettings.addEventListener('click', async () => {
+if (btnSaveSettings) btnSaveSettings.addEventListener('click', async () => {
     const newSettings = {
         language: langSelect.value,
         adhanSound: toggleAdhan.checked,
@@ -521,5 +535,89 @@ function updateSkyCycle() {
         cardEl.classList.remove('is-day');
     }
 }
+
+// --- منطق رفع الأصوات ---
+const uploadAdhanInput = document.getElementById('upload-adhan');
+const btnUploadAdhan = document.getElementById('btn-upload-adhan');
+const btnResetAdhan = document.getElementById('btn-reset-adhan');
+const statusAdhan = document.getElementById('status-adhan');
+
+const uploadIqamaInput = document.getElementById('upload-iqama');
+const btnUploadIqama = document.getElementById('btn-upload-iqama');
+const btnResetIqama = document.getElementById('btn-reset-iqama');
+const statusIqama = document.getElementById('status-iqama');
+
+// ربط الأزرار بحقول الإدخال المخفية
+btnUploadAdhan.addEventListener('click', () => uploadAdhanInput.click());
+btnUploadIqama.addEventListener('click', () => uploadIqamaInput.click());
+
+// دالة مساعدة لقراءة الملف وتحويله لـ Base64
+const handleFileUpload = (file, storageKey, statusEl) => {
+    if (!file) return;
+    
+    // التحقق من الحجم (مثلاً لا يزيد عن 5 ميجا)
+    if (file.size > 5 * 1024 * 1024) {
+        alert("حجم الملف كبير جداً! يرجى اختيار ملف أقل من 5 ميجابايت.");
+        return;
+    }
+
+    const reader = new FileReader();
+    statusEl.textContent = "جاري المعالجة...";
+    
+    reader.onload = async function(e) {
+        const base64Audio = e.target.result;
+        await chrome.storage.local.set({ [storageKey]: base64Audio });
+        statusEl.textContent = "✅ تم تعيين الملف المخصص (" + file.name + ")";
+        statusEl.style.color = "#4dabf7";
+    };
+    
+    reader.readAsDataURL(file);
+};
+
+// عند اختيار ملف أذان
+uploadAdhanInput.addEventListener('change', (e) => {
+    handleFileUpload(e.target.files[0], 'custom_adhan_sound', statusAdhan);
+});
+
+// عند اختيار ملف إقامة
+uploadIqamaInput.addEventListener('change', (e) => {
+    handleFileUpload(e.target.files[0], 'custom_iqama_sound', statusIqama);
+});
+
+// زر الاستعادة (حذف المخصص)
+btnResetAdhan.addEventListener('click', async () => {
+    await chrome.storage.local.remove('custom_adhan_sound');
+    statusAdhan.textContent = "الافتراضي";
+    statusAdhan.style.color = "#888";
+    uploadAdhanInput.value = ""; // تصفير الإدخال
+});
+
+btnResetIqama.addEventListener('click', async () => {
+    await chrome.storage.local.remove('custom_iqama_sound');
+    statusIqama.textContent = "الافتراضي";
+    statusIqama.style.color = "#888";
+    uploadIqamaInput.value = "";
+});
+
+// عند فتح الإعدادات، نتحقق من الحالة الحالية
+async function checkCustomSounds() {
+    const data = await chrome.storage.local.get(['custom_adhan_sound', 'custom_iqama_sound']);
+    
+    if (data.custom_adhan_sound) {
+        statusAdhan.textContent = "✅ مخصص (محفوظ)";
+        statusAdhan.style.color = "#4dabf7";
+    }
+    
+    if (data.custom_iqama_sound) {
+        statusIqama.textContent = "✅ مخصص (محفوظ)";
+        statusIqama.style.color = "#4dabf7";
+    }
+}
+
+// ⚠️ مهم: استدعِ checkCustomSounds() داخل زر فتح الإعدادات
+btnSettings.addEventListener('click', async () => {
+    // ... (الكود القديم) ...
+    checkCustomSounds(); // 🆕 أضف هذا السطر
+});
 
 init();

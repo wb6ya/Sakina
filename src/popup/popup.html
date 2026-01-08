@@ -67,62 +67,105 @@
             </div>
     </div>
 
-    <div id="settings-view" class="view overlay-view hidden">
-        <header class="settings-header">
+    <div id="settings-view" class="view hidden" style="background: #121212;">
+        <div class="settings-header">
             <h3>الإعدادات</h3>
-            <button id="btn-close-settings" class="close-btn">×</button>
-        </header>
-
+            <button id="btn-close-settings" class="close-btn" title="إغلاق">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+        </div>
+        
         <div class="settings-content">
-            <div class="setting-group">
-                <label>تنبيه قبل الأذان (دقيقة)</label>
-                <input type="number" id="input-pre-time" min="1" max="60" value="10">
-            </div>
-
-            <div class="setting-group">
-                <label>وقت الإقامة (دقيقة)</label>
-                <input type="number" id="input-iqama-time" min="1" max="60" value="20">
-            </div>
-
-            <div class="setting-group checkbox-group">
-                <label>صوت الأذان</label>
-                <label class="switch">
-                    <input type="checkbox" id="toggle-adhan-sound" checked>
-                    <span class="slider round"></span>
-                </label>
-            </div>
-
-            <div class="setting-group checkbox-group">
-                <label>تنبيه الشروق</label>
-                <label class="switch">
-                    <input type="checkbox" id="toggle-sunrise">
-                    <span class="slider round"></span>
-                </label>
-            </div>
-
-            <div class="setting-group checkbox-group">
-                <label>شاشة كاملة وقت الإقامة (وضع الخشوع)</label>
-                <label class="switch">
-                    <input type="checkbox" id="toggle-fullscreen-iqama">
-                    <span class="slider round"></span>
-                </label>
-            </div>
-
-            <div class="setting-group">
-                <label data-i18n="labelLanguage">اللغة / Language</label>
-                <select id="language-select" style="padding: 8px; border-radius: 6px; background: #333; color: white; border: 1px solid #444; width: 100px;">
-                    <option value="ar">العربية</option>
-                    <option value="en">English</option>
-                </select>
-            </div>
-
-            <div style="width: 100%; height: 1px; background: #333; margin: 15px 0;"></div>
-
-            <hr>
             
-            <div class="setting-actions">
-                <button id="btn-save-settings" class="btn primary-btn">حفظ التغييرات</button>
-                <button id="btn-reset-location" class="btn danger-btn" style="margin-top: 10px;">🔄 تغيير الموقع</button>
+            <div class="settings-section">
+                <h4 class="section-title">عام</h4>
+                <div class="setting-group">
+                    <label data-i18n="labelLanguage">اللغة</label>
+                    <select id="language-select" class="dropdown-select">
+                        <option value="ar">العربية</option>
+                        <option value="en">English</option>
+                    </select>
+                </div>
+                <div class="setting-group checkbox-group">
+                    <label for="toggle-fullscreen-iqama">شاشة كاملة وقت الإقامة</label>
+                    <label class="switch">
+                        <input type="checkbox" id="toggle-fullscreen-iqama">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <h4 class="section-title">التنبيهات</h4>
+                <div class="setting-group checkbox-group">
+                    <label for="toggle-sunrise">تنبيه الشروق</label>
+                    <label class="switch">
+                        <input type="checkbox" id="toggle-sunrise">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                
+                <div class="setting-group checkbox-group">
+                    <label for="toggle-adhan-sound">تشغيل صوت الأذان</label>
+                    <label class="switch">
+                        <input type="checkbox" id="toggle-adhan-sound" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <h4 class="section-title">التوقيت</h4>
+                <div class="time-inputs-row">
+                    <div class="setting-group compact">
+                        <label for="input-pre-time">تنبيه قبل (د)</label>
+                        <input type="number" id="input-pre-time" min="0" max="60" value="15">
+                    </div>
+                    <div class="setting-group compact">
+                        <label for="input-iqama-time">انتظار الإقامة (د)</label>
+                        <input type="number" id="input-iqama-time" min="0" max="60" value="25">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="settings-section audio-card">
+                <h4 class="section-title" style="color: var(--primary-color);">تخصيص الأصوات</h4>
+                
+                <div class="audio-row">
+                    <div class="audio-info">
+                        <span class="audio-label">الأذان</span>
+                        <span id="status-adhan" class="audio-status">الافتراضي</span>
+                    </div>
+                    <div class="audio-actions">
+                        <input type="file" id="upload-adhan" accept="audio/*" style="display: none;">
+                        <button id="btn-upload-adhan" class="icon-action-btn" title="رفع ملف">📂</button>
+                        <button id="btn-reset-adhan" class="icon-action-btn danger" title="استعادة">↺</button>
+                    </div>
+                </div>
+
+                <div class="separator"></div>
+
+                <div class="audio-row">
+                    <div class="audio-info">
+                        <span class="audio-label">الإقامة</span>
+                        <span id="status-iqama" class="audio-status">الافتراضي</span>
+                    </div>
+                    <div class="audio-actions">
+                        <input type="file" id="upload-iqama" accept="audio/*" style="display: none;">
+                        <button id="btn-upload-iqama" class="icon-action-btn" title="رفع ملف">📂</button>
+                        <button id="btn-reset-iqama" class="icon-action-btn danger" title="استعادة">↺</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="settings-content">
+                <div class="settings-footer">
+                    <button id="btn-save-settings" class="btn primary-btn">حفظ الإعدادات</button>
+                    
+                    <button id="btn-reset-location" class="btn danger-outline-btn">
+                        تغيير الموقع
+                    </button>
+                </div>
             </div>
         </div>
     </div>

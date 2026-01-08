@@ -5,6 +5,7 @@
   "description": "تنبيهات الصلاة الذكية والخشوع",
   "permissions": [
     "storage",
+    "unlimitedStorage", 
     "alarms",
     "activeTab",
     "geolocation",
