@@ -33,10 +33,15 @@ export const TRANSLATIONS = {
         labelPreTime: "تنبيه قبل الأذان (دقيقة)",
         labelIqamaTime: "وقت الانتظار للإقامة (دقيقة)",
 
+        // 🆕 نصوص الأذكار الجديدة
+        labelAdhkar: "تفعيل الأذكار التلقائية",
+        labelAdhkarTime: "وقت التكرار (دقيقة)",
+
         // التنبيهات
         prayerFajr: "الفجر",
         prayerSunrise: "الشروق",
         prayerDhuhr: "الظهر",
+        prayerJumuah: "الجمعة",
         prayerAsr: "العصر",
         prayerMaghrib: "المغرب",
         prayerIsha: "العشاء",
@@ -48,6 +53,7 @@ export const TRANSLATIONS = {
         alertSunriseTitle: "وقت الشروق",
         alertSunriseMsg: "انتهى وقت صلاة الفجر",
         alertIqamaTitle: "إقامة الصلاة",
+        alertAdhkarTitle: "ذكر الله",
         
         btnStopAudio: "إيقاف الصوت",
         btnMuted: "تم الإسكات",
@@ -82,10 +88,15 @@ export const TRANSLATIONS = {
         labelPreTime: "Pre-Adhan Alert (min)",
         labelIqamaTime: "Iqama Wait Time (min)",
 
+        // 🆕 New Adhkar Keys
+        labelAdhkar: "Enable Auto Adhkar",
+        labelAdhkarTime: "Repeat Interval (min)",
+
         // Notifications
         prayerFajr: "Fajr",
         prayerSunrise: "Sunrise",
         prayerDhuhr: "Dhuhr",
+        prayerJumuah: "Jumu'ah",
         prayerAsr: "Asr",
         prayerMaghrib: "Maghrib",
         prayerIsha: "Isha",
@@ -97,6 +108,7 @@ export const TRANSLATIONS = {
         alertSunriseTitle: "Sunrise Time",
         alertSunriseMsg: "Fajr time has ended",
         alertIqamaTitle: "Iqama (Prayer Start)",
+        alertAdhkarTitle: "Remembrance (Dhikr)",
         
         btnStopAudio: "Stop Audio",
         btnMuted: "Muted",

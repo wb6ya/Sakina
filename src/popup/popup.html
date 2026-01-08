@@ -39,8 +39,9 @@
 
     <div id="main-view" class="view hidden">
         <header class="main-header">
-            <div class="location-badge" id="location-badge-btn">
-                <span id="location-name">--</span> 📍
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+                <div class="location-badge"><span id="location-name">...</span> 📍</div>
+                <div id="current-date" style="font-size: 11px; color: #888; margin-right: 5px;">...</div>
             </div>
             <button id="btn-settings" class="icon-btn">⚙️</button>
         </header>
@@ -111,6 +112,21 @@
                         <input type="checkbox" id="toggle-adhan-sound" checked>
                         <span class="slider"></span>
                     </label>
+                </div>
+            </div>
+
+            <div class="settings-section">
+                <h4 class="section-title">الأذكار</h4>
+                <div class="setting-group checkbox-group">
+                    <label for="toggle-adhkar">تفعيل الأذكار التلقائية</label>
+                    <label class="switch">
+                        <input type="checkbox" id="toggle-adhkar">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="setting-group compact">
+                    <label for="input-adhkar-time">وقت التكرار (دقيقة)</label>
+                    <input type="number" id="input-adhkar-time" min="5" max="300" value="30">
                 </div>
             </div>
 

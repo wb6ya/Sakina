@@ -37,6 +37,8 @@
       "resources": [
         "assets/adhan.mp3",
         "assets/iqama.mp3",
+        "assets/adhkar.mp3",
+        "assets/sunrise.mp3",
         "assets/icon16.png",
         "assets/icon48.png",
         "assets/icon128.png"
