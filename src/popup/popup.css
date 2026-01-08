@@ -149,7 +149,7 @@ body {
 .welcome-card { text-align: center; margin-top: 20px; }
 .logo-img { width: 80px; margin-bottom: 10px; }
 
-.search-box { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
+.search-box { position: relative; display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
 .search-box input {
     padding: 10px;
     border-radius: 8px;
@@ -162,27 +162,64 @@ body {
 .divider { margin: 15px 0; color: var(--text-muted); font-size: 12px; }
 
 /* قائمة الاقتراحات (Autocomplete) */
-.suggestions-list {
-    position: absolute; top: 100%; left: 0; right: 0;
-    background-color: #252525;
-    border: 1px solid #444; border-top: none;
-    border-radius: 0 0 8px 8px;
-    list-style: none; padding: 0; margin: 0;
-    max-height: 150px; overflow-y: auto;
-    z-index: 10;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+/* --- حاوية البحث --- */
+.search-box {
+    position: relative; 
+    z-index: 100; /* رفع قيمة الطبقة لضمان ظهور القائمة فوق الأزرار */
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
-.suggestion-item {
-    padding: 10px 12px;
-    font-size: 13px;
-    color: #ddd;
-    cursor: pointer;
-    border-bottom: 1px solid #333;
-    text-align: left;
-    direction: ltr;
-}
-.suggestion-item:hover { background-color: var(--primary-color); color: #000; }
 
+/* --- قائمة الاقتراحات الذكية --- */
+#suggestions-list {
+    position: absolute;
+    top: 100%; 
+    left: 0;
+    right: 0;
+    background: #1e1e1e;
+    border: 1px solid #d4af37; /* حدود ذهبية خفيفة لتمييزها */
+    border-radius: 0 0 12px 12px;
+    list-style: none;
+    padding: 0;
+    margin: 2px 0 0 0;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 9999; 
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    /* لا تضع display: none هنا، سنحكم بها من JS عبر الكلاس hidden */
+}
+
+.suggestion-item {
+    padding: 12px 16px;
+    cursor: pointer;
+    border-bottom: 1px solid #2a2a2a;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #eee;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    text-align: right; /* التأكد من محاذاة النص لليمين */
+}
+
+.suggestion-item:hover {
+    background: #2a2a2a;
+    color: var(--primary-color);
+    padding-right: 20px;
+}
+
+.suggestion-item .loc-icon {
+    font-size: 14px;
+    opacity: 0.6;
+}
+
+/* كلاس مخصص لتغيير شكل الزر أثناء البحث */
+.btn-loading {
+    opacity: 0.7;
+    cursor: wait !important;
+    pointer-events: none;
+}
 /* =========================================
    7. الشاشة الرئيسية (Main View)
    ========================================= */
@@ -477,6 +514,28 @@ input:checked + .slider:before { transform: translateX(22px); }
     content: "📍";
     font-size: 14px;
     opacity: 0.8;
+}
+
+/* ضمان ظهور قائمة الاقتراحات فوق كل شيء في شاشة الترحيب */
+.search-box {
+    position: relative; /* ضروري لعمل القائمة المنسدلة */
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* تحسين استجابة الأزرار للنقر */
+.btn {
+    position: relative;
+    z-index: 5;
+    cursor: pointer !important;
+    pointer-events: auto !important;
+}
+
+/* تأكد أن شاشة الإعدادات لا تحجب شاشة الترحيب عند البدء */
+#settings-view:not(.active) {
+    pointer-events: none; /* يمنع التفاعل معها وهي مخفية */
 }
 
 /* =========================================
