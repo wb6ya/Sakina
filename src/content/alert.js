@@ -1,248 +1,169 @@
 /**
  * @file alert.js
- * @description نظام العرض الذكي (تحديث تلقائي فوري + منع الرمشة)
+ * @description إدارة واجهة الإشعارات (نسخة منع التكرار)
  */
 
-let timerInterval = null;
-let lastRenderedState = null; // 🆕 لتخزين آخر حالة تم رسمها ومنع التكرار
+const ICONS = {
+    MOSQUE: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L4 7v13h16V7l-8-5z"/><path d="M9.5 20v-5h5v5"/><path d="M12 2v5"/><circle cx="12" cy="10" r="1.5"/></svg>`,
+    PRAYING: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/><path d="M14 8c0 2.5-2 2.5-2 6v6h-4v-6c0-3.5-2-3.5-2-6 0-3 3-5 5-5s5 2 5 5z"/></svg>`,
+    TASBIH: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="7" r="1"/><circle cx="16" cy="9" r="1"/><circle cx="17" cy="13" r="1"/><circle cx="15" cy="17" r="1"/><circle cx="12" cy="19" r="1"/><circle cx="9" cy="17" r="1"/><circle cx="7" cy="13" r="1"/><circle cx="8" cy="9" r="1"/><path d="M12 2v2"/></svg>`,
+    SUN: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2"/><path d="M12 21v2"/><path d="M4.22 4.22l1.42 1.42"/><path d="M18.36 18.36l1.42 1.42"/><path d="M1 12h2"/><path d="M21 12h2"/><path d="M4.22 19.78l1.42-1.42"/><path d="M18.36 5.64l1.42-1.42"/></svg>`,
+    HOURGLASS: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg>`
+};
 
-// =================================================
-// 1. استقبال الأوامر
-// =================================================
+let countdownInterval = null;
+let currentAlertId = null;
+
+// استقبال الرسائل
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "SHOW_PRAYER_ALERT") {
-        // إذا جاء أمر مباشر من الخلفية، ننفذه فوراً
-        processAlertUpdate(request);
-    }
-    else if (request.action === "FORCE_CLOSE_ALERT") {
-        removeAlert(true);
-    }
-});
-
-// =================================================
-// 2. مزامنة الإغلاق
-// =================================================
-chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === 'local' && changes.dismiss_timestamp) {
-        removeAlert(true);
+        createAlert(request);
+    } else if (request.action === "ALERT_CLOSED") {
+        const el = document.getElementById('sakina-overlay');
+        if (el) closeAlert(el);
     }
 });
 
-// =================================================
-// 3. الذكاء الحركي + النبض (Auto-Refresh Logic) 💓
-// =================================================
-
-// أ) عند تحميل الصفحة
-setTimeout(checkAndDrawAlert, 500);
-
-// ب) عند الانتقال لهذا التبويب
+// الفحص الذكي
+setTimeout(checkActiveAlert, 500);
 document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === 'visible') {
-        checkAndDrawAlert();
-    }
+    if (document.visibilityState === 'visible') checkActiveAlert();
 });
 
-// ج) 🆕 النبض: فحص الخلفية كل ثانيتين للتحديث التلقائي
-setInterval(() => {
-    if (document.visibilityState === 'visible') {
-        checkAndDrawAlert();
-    }
-}, 2000);
-
-// دالة تفحص الخلفية
-function checkAndDrawAlert() {
+function checkActiveAlert() {
     try {
         chrome.runtime.sendMessage({ action: "GET_ACTIVE_ALERT" }, (response) => {
             if (response && response.action === "SHOW_PRAYER_ALERT") {
-                processAlertUpdate(response);
+                createAlert(response);
             } else {
-                // الخلفية تقول لا يوجد تنبيه، فإذا كان لدينا تنبيه معروض نحذفه
-                if (document.getElementById('prayer-focus-alert')) {
-                    removeAlert(true);
-                    lastRenderedState = null; // تصفير الحالة
-                }
+                const existing = document.getElementById('sakina-overlay');
+                if (existing) closeAlert(existing);
             }
         });
-    } catch (e) {
-        // نتجاهل أخطاء الاتصال
+    } catch (e) {}
+}
+
+function getIconByType(type, prayerKey) {
+    if (prayerKey === 'Sunrise') return ICONS.SUN;
+    switch (type) {
+        case 'ADHAN': return ICONS.MOSQUE;
+        case 'IQAMA': return ICONS.PRAYING;
+        case 'PRE': return ICONS.HOURGLASS;
+        case 'NORMAL': return ICONS.TASBIH;
+        default: return ICONS.MOSQUE;
     }
 }
 
-// 🆕 دالة ذكية لتقرير هل نعيد الرسم أم لا
-function processAlertUpdate(data) {
-    // ننشئ "بصمة" للحالة الجديدة (العنوان + النوع + الرسالة)
-    // لا نضمن العداد لأنه يتغير محلياً
-    const newStateSignature = JSON.stringify({
-        title: data.title,
-        type: data.type,
-        msg: data.message,
-        q: data.quoteData
-    });
+function createAlert(data) {
+    const newAlertId = data.title + data.type;
+    if (currentAlertId === newAlertId && document.getElementById('sakina-overlay')) return;
+    currentAlertId = newAlertId;
 
-    // إذا كانت البصمة مطابقة لما هو معروض حالياً، لا تفعل شيئاً (منع الرمشة)
-    if (lastRenderedState === newStateSignature) {
-        return; 
-    }
+    const oldAlert = document.getElementById('sakina-overlay');
+    if (oldAlert) oldAlert.remove();
+    if (countdownInterval) clearInterval(countdownInterval);
 
-    // إذا اختلفت، نرسم من جديد
-    lastRenderedState = newStateSignature;
-    createCustomAlert(
-        data.title, 
-        data.message, 
-        data.type, 
-        data.timerData, 
-        data.quoteData,
-        data.isFullscreen,
-        data.btnLabels
-    );
-}
+    const overlay = document.createElement('div');
+    overlay.id = 'sakina-overlay';
+    if (data.isFullscreen) overlay.classList.add('sakina-fullscreen');
 
-// =================================================
-// 4. دالة الرسم (Create Alert)
-// =================================================
-function createCustomAlert(title, message, type, timerData, quoteData, isFullscreen, btnLabels) {
-    // حذف القديم فوراً
-    removeAlert(true);
-
-    const alertBox = document.createElement('div');
-    alertBox.id = 'prayer-focus-alert';
+    const iconSvg = getIconByType(data.type, data.quoteData ? null : 'Prayer');
     
-    // تحديد الاتجاه
-    const isEnglish = btnLabels && btnLabels.close === "Close";
-    alertBox.style.direction = isEnglish ? "ltr" : "rtl";
-    alertBox.setAttribute('lang', isEnglish ? 'en' : 'ar');
+    // 💡 الإصلاح هنا:
+    // إذا كان هناك اقتباس (quoteData)، لا تعرض الرسالة (message) في الأعلى
+    const showMessage = !data.quoteData; 
 
-    if (isFullscreen && type === 'IQAMA') {
-        alertBox.classList.add('pf-fullscreen-mode');
-    }
+    overlay.innerHTML = `
+        <div class="sakina-card">
+            <div class="sakina-header-row">
+                <div class="sakina-icon-box">
+                    ${iconSvg}
+                </div>
+                <div class="sakina-text-content">
+                    <h2 class="sakina-title">${data.title}</h2>
+                    ${showMessage ? `<p class="sakina-msg">${data.message}</p>` : ''} 
+                </div>
+                <button id="sakina-close-btn" class="sakina-close-btn">&times;</button>
+            </div>
 
-    const isAdhan = type === 'ADHAN';
-    const icon = isAdhan ? '🕌' : (type === 'IQAMA' ? '⚡' : (title.includes('Sunrise') || title.includes('الشروق') ? '🌅' : '⏳'));
-    
-    const stopAudioText = btnLabels ? btnLabels.stopAudio : "إيقاف الصوت";
-    const closeText = btnLabels ? btnLabels.close : "إغلاق";
+            ${data.timerData ? `
+                <div class="sakina-timer-container">
+                    <span class="sakina-timer-digits" id="sakina-timer">--:--</span>
+                </div>
+            ` : ''}
 
-    const muteButtonHtml = isAdhan ? `<button id="pf-mute-btn" class="pf-action-btn">${stopAudioText}</button>` : '';
+            ${data.quoteData ? `
+                <div class="sakina-quote-container">
+                    <p class="sakina-quote-body">"${data.quoteData.text}"</p>
+                    <span class="sakina-quote-source">— ${data.quoteData.source}</span>
+                </div>
+            ` : ''}
 
-    let contentHtml = '';
-    if (quoteData) {
-        const isQuran = quoteData.type === 'QURAN';
-        const typeIcon = isQuran ? '📖' : '📜';
-        const styleClass = isQuran ? 'pf-quran' : 'pf-hadith';
-        contentHtml = `
-            <div class="pf-quote-container ${styleClass}">
-                <div class="pf-quote-header"><span class="pf-quote-icon">${typeIcon}</span></div>
-                <div class="pf-quote-text">"${quoteData.text}"</div>
-                <div class="pf-quote-source">${quoteData.source}</div>
-            </div>`;
-    } else {
-        contentHtml = `<div class="pf-message" id="pf-msg-text">${message}</div>`;
-    }
-
-    alertBox.innerHTML = `
-        <div class="pf-icon-wrapper">${icon}</div>
-        <div class="pf-content">
-            <div class="pf-title">${title}</div>
-            ${contentHtml}
-            <div class="pf-timer" id="pf-timer-display"></div>
-            ${muteButtonHtml}
+            <div class="sakina-actions-row">
+                 ${(data.type === 'ADHAN' || data.type === 'IQAMA' || data.type === 'NORMAL') ? `
+                    <button id="sakina-stop-btn" class="sakina-action-btn stop">
+                        ${data.btnLabels.stopAudio} 🔇
+                    </button>
+                ` : ''}
+            </div>
         </div>
-        <button class="pf-close" title="${closeText}">×</button>
     `;
 
-    document.body.appendChild(alertBox);
+    document.body.appendChild(overlay);
 
-    if (timerData) startLiveTimer(timerData, isEnglish);
+    if (data.timerData) startTimer(data.timerData);
 
-    const muteBtn = alertBox.querySelector('#pf-mute-btn');
-    if (muteBtn) {
-        muteBtn.onclick = (e) => {
-            e.stopPropagation();
-            chrome.runtime.sendMessage({ action: "STOP_AUDIO" });
-            muteBtn.innerHTML = btnLabels ? btnLabels.muted : "تم الإسكات";
-            muteBtn.disabled = true;
-            muteBtn.style.opacity = "0.6";
+    document.getElementById('sakina-close-btn').onclick = () => {
+        closeAlert(overlay);
+        chrome.runtime.sendMessage({ action: "ALERT_CLOSED" });
+    };
+    
+    const stopBtn = document.getElementById('sakina-stop-btn');
+    if (stopBtn) {
+        stopBtn.onclick = () => {
+            chrome.runtime.sendMessage({ action: 'STOP_AUDIO' });
+            stopBtn.innerHTML = `${data.btnLabels.muted} 😶`;
+            stopBtn.classList.add('muted');
+            stopBtn.disabled = true;
         };
     }
 
-    alertBox.querySelector('.pf-close').onclick = () => {
-        chrome.runtime.sendMessage({ action: "STOP_AUDIO" });
-        chrome.runtime.sendMessage({ action: "ALERT_CLOSED" });
-        chrome.storage.local.set({ dismiss_timestamp: Date.now() });
-        lastRenderedState = null; // تصفير الحالة
-        removeAlert();
-    };
-
-    if (!isFullscreen) {
-        const duration = (timerData || quoteData) ? 90000 : 20000;
-        setTimeout(() => {
-            if (document.body.contains(alertBox)) {
-                removeAlert();
-                lastRenderedState = null;
-            }
-        }, duration);
-    }
+    const duration = data.isFullscreen ? 300000 : 25000;
+    setTimeout(() => {
+        if (document.body.contains(overlay)) closeAlert(overlay);
+    }, duration);
 }
 
-// =================================================
-// 5. دوال مساعدة
-// =================================================
-function startLiveTimer(data, isEnglish) {
-    const timerDisplay = document.getElementById('pf-timer-display');
-    if (!timerDisplay) return;
-    
-    if (timerInterval) clearInterval(timerInterval);
-
-    const txtRemaining = isEnglish ? "Remaining: " : "متبقي: ";
-    const txtElapsed = isEnglish ? "Elapsed: " : "مرَّ: ";
+function startTimer(timerData) {
+    const timerEl = document.getElementById('sakina-timer');
+    if (!timerEl) return;
 
     const update = () => {
         const now = Date.now();
-        if (data.mode === 'COUNTDOWN') {
-            const target = Number(data.targetTime);
-            if (!target) return;
-            const diff = target - now;
-            
-            // 🆕 إذا انتهى الوقت، نفرض تحديثاً فورياً
+        let diff;
+        if (timerData.mode === 'COUNTDOWN') {
+            diff = timerData.targetTime - now;
             if (diff <= 0) {
-                timerDisplay.textContent = "00:00:00";
-                clearInterval(timerInterval);
-                // ننتظر ثانية ثم نفحص الخلفية (لأن الحالة ستكون قد تغيرت في الخلفية)
-                setTimeout(() => checkAndDrawAlert(), 1000);
-            } else {
-                timerDisplay.textContent = txtRemaining + msToTime(diff);
-                timerDisplay.className = "pf-timer pf-timer-countdown";
+                timerEl.textContent = "00:00";
+                clearInterval(countdownInterval);
+                setTimeout(checkActiveAlert, 1000);
+                return;
             }
-        } else if (data.mode === 'COUNTUP') {
-            const start = Number(data.startTime);
-            const diff = now - start;
-            timerDisplay.textContent = txtElapsed + msToTime(diff);
-            timerDisplay.className = "pf-timer pf-timer-countup";
+        } else {
+            diff = now - timerData.startTime;
         }
+        const m = Math.floor(diff / 60000);
+        const s = Math.floor((diff % 60000) / 1000);
+        timerEl.textContent = `${m}:${s.toString().padStart(2, '0')}`;
     };
     update();
-    timerInterval = setInterval(update, 1000);
+    countdownInterval = setInterval(update, 1000);
 }
 
-function removeAlert(immediate = false) {
-    const el = document.getElementById('prayer-focus-alert');
-    if (el) {
-        if (timerInterval) clearInterval(timerInterval);
-        
-        if (immediate) {
-            el.remove();
-        } else {
-            el.style.animation = 'pf-slide-out 0.3s forwards';
-            setTimeout(() => { 
-                if (el && el.parentNode) el.remove(); 
-            }, 300);
-        }
-    }
-}
-
-function msToTime(duration) {
-    if (isNaN(duration) || duration < 0) return "00:00";
-    let seconds = Math.floor((duration / 1000) % 60);
-    let minutes = Math.floor((duration / (1000 * 60)) % 60);
-    return [minutes, seconds].map(v => v < 10 ? "0" + v : v).join(":");
+function closeAlert(el) {
+    currentAlertId = null;
+    if (!el) return;
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(-10px)';
+    setTimeout(() => { if (el && el.parentNode) el.remove(); }, 300);
 }

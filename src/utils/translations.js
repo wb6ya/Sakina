@@ -1,43 +1,43 @@
 /**
  * @file translations.js
- * @description قاموس النصوص العربية والإنجليزية (محدث)
+ * @description قاموس النصوص العربية والإنجليزية (محدث ومحسن)
  */
 
 export const TRANSLATIONS = {
     ar: {
         dir: "rtl",
-        // نصوص عامة
-        appTitle: "Prayer Focus",
+        // === نصوص عامة ===
+        appTitle: "سكينة | Sakina",
         loading: "جاري التحميل...",
         save: "حفظ الإعدادات",
         reset: "تغيير الموقع",
         manualSearch: "بحث يدوي",
         autoLocate: "تحديد تلقائي (GPS)",
         
-        // 🆕 نصوص جديدة (Placeholders & Modal Buttons)
-        placeholderCity: "اكتب اسم المدينة (مثل: Riyadh)...",
+        // === النوافذ والمدخلات ===
+        placeholderCity: "اكتب اسم المدينة (مثال: Riyadh)...",
         btnYes: "نعم",
         btnNo: "لا",
         btnOk: "حسناً",
         
-        // نصوص الواجهة
+        // === نصوص الواجهة الرئيسية ===
         nextPrayer: "الصلاة القادمة",
         remainingTime: "الوقت المتبقي",
         elapsedTime: "الوقت المنقضي",
         
-        // الإعدادات
+        // === الإعدادات ===
         labelLanguage: "اللغة / Language",
         labelAdhan: "تشغيل صوت الأذان",
-        labelSunrise: "تنبيه الشروق",
+        labelSunrise: "تفعيل تنبيه الشروق",
         labelFullscreen: "شاشة كاملة وقت الإقامة",
-        labelPreTime: "تنبيه قبل الأذان (دقيقة)",
-        labelIqamaTime: "وقت الانتظار للإقامة (دقيقة)",
+        labelPreTime: "تنبيه قبل الأذان (بالدقائق)",
+        labelIqamaTime: "وقت الانتظار للإقامة (بالدقائق)",
 
-        // 🆕 نصوص الأذكار الجديدة
+        // إعدادات الأذكار
         labelAdhkar: "تفعيل الأذكار التلقائية",
-        labelAdhkarTime: "وقت التكرار (دقيقة)",
+        labelAdhkarTime: "تكرار الذكر كل (دقيقة)",
 
-        // التنبيهات
+        // === أسماء الصلوات ===
         prayerFajr: "الفجر",
         prayerSunrise: "الشروق",
         prayerDhuhr: "الظهر",
@@ -46,41 +46,55 @@ export const TRANSLATIONS = {
         prayerMaghrib: "المغرب",
         prayerIsha: "العشاء",
         
-        alertPreTitle: "قرب وقت الصلاة",
-        alertPreMsg: "اقترب موعد صلاة {prayer}، استعد...",
-        alertAdhanTitle: "حان وقت الصلاة",
-        alertAdhanMsg: "حي على الصلاة.. حي على الفلاح",
-        alertSunriseTitle: "وقت الشروق",
-        alertSunriseMsg: "انتهى وقت صلاة الفجر",
-        alertIqamaTitle: "إقامة الصلاة",
-        alertAdhkarTitle: "ذكر الله",
+        // === رسائل التنبيهات (محسنة) ===
         
+        // قبل الأذان
+        alertPreTitle: "اقترب الموعد",
+        alertPreMsg: "دقائق معدودة تفصلنا عن أذان {prayer}، استعد للقاء الله.",
+
+        // وقت الأذان
+        alertAdhanTitle: "الله أكبر",
+        alertAdhanMsg: "حان الآن موعد أذان {prayer} حسب توقيت مدينتك.",
+
+        // وقت الشروق
+        alertSunriseTitle: "إشراق الشمس",
+        alertSunriseMsg: "أصبحنا وأصبح الملك لله.. (انتهى وقت صلاة الفجر).",
+
+        // وقت الإقامة
+        alertIqamaTitle: "إقامة الصلاة",
+        alertIqamaMsg: "استووا واعتدلوا.. حان وقت إقامة صلاة {prayer}.",
+
+        // الأذكار
+        alertAdhkarTitle: "وقفة مع الذكر",
+        
+        // === أزرار التحكم في التنبيه ===
         btnStopAudio: "إيقاف الصوت",
         btnMuted: "تم الإسكات",
         btnClose: "إغلاق"
     },
+    
     en: {
         dir: "ltr",
-        // General
-        appTitle: "Prayer Focus",
+        // === General ===
+        appTitle: "Sakina | Prayer Focus",
         loading: "Loading...",
         save: "Save Settings",
         reset: "Change Location",
         manualSearch: "Manual Search",
         autoLocate: "Auto Locate (GPS)",
         
-        // 🆕 New Keys
+        // === Modals & Inputs ===
         placeholderCity: "Enter city name (e.g. London)...",
         btnYes: "Yes",
         btnNo: "No",
         btnOk: "OK",
         
-        // UI
+        // === UI Labels ===
         nextPrayer: "Next Prayer",
         remainingTime: "Time Remaining",
         elapsedTime: "Time Elapsed",
         
-        // Settings
+        // === Settings ===
         labelLanguage: "Language / اللغة",
         labelAdhan: "Enable Adhan Sound",
         labelSunrise: "Sunrise Alert",
@@ -88,11 +102,11 @@ export const TRANSLATIONS = {
         labelPreTime: "Pre-Adhan Alert (min)",
         labelIqamaTime: "Iqama Wait Time (min)",
 
-        // 🆕 New Adhkar Keys
+        // Adhkar Settings
         labelAdhkar: "Enable Auto Adhkar",
         labelAdhkarTime: "Repeat Interval (min)",
 
-        // Notifications
+        // === Prayer Names ===
         prayerFajr: "Fajr",
         prayerSunrise: "Sunrise",
         prayerDhuhr: "Dhuhr",
@@ -101,15 +115,28 @@ export const TRANSLATIONS = {
         prayerMaghrib: "Maghrib",
         prayerIsha: "Isha",
         
-        alertPreTitle: "Prayer is Near",
-        alertPreMsg: "{prayer} prayer is coming soon...",
-        alertAdhanTitle: "It's Prayer Time",
-        alertAdhanMsg: "Hayya 'ala-Salah... Come to prayer",
-        alertSunriseTitle: "Sunrise Time",
-        alertSunriseMsg: "Fajr time has ended",
-        alertIqamaTitle: "Iqama (Prayer Start)",
+        // === Notifications (Improved) ===
+        
+        // Pre-Adhan
+        alertPreTitle: "Approaching Prayer",
+        alertPreMsg: "A few minutes left until {prayer}. Prepare yourself.",
+
+        // Adhan Time
+        alertAdhanTitle: "It is Prayer Time",
+        alertAdhanMsg: "It is now time for {prayer} Adhan in your city.",
+
+        // Sunrise
+        alertSunriseTitle: "Sunrise",
+        alertSunriseMsg: "The time for Fajr prayer has ended.",
+
+        // Iqama
+        alertIqamaTitle: "Iqama Time",
+        alertIqamaMsg: "Stand up for prayer. It is time for {prayer} Iqama.",
+
+        // Adhkar
         alertAdhkarTitle: "Remembrance (Dhikr)",
         
+        // === Notification Buttons ===
         btnStopAudio: "Stop Audio",
         btnMuted: "Muted",
         btnClose: "Close"
