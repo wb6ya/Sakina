@@ -254,13 +254,10 @@ async function playAudio(type, volume = 1.0) {
     } else if (type === 'IQAMA') {
         finalSource = chrome.runtime.getURL('assets/iqama.mp3');
         storageKey = 'custom_iqama_sound';
-    } else if (type === 'ADHKAR') {
+    } else if (type === 'ADHKAR' || type === 'SUNRISE') {
         finalSource = chrome.runtime.getURL('assets/adhkar.mp3');
         storageKey = 'custom_adhkar_sound';
-    } else if (type === 'SUNRISE') {
-        finalSource = chrome.runtime.getURL('assets/sunrise.mp3');
-        storageKey = 'custom_sunrise_sound';
-    } else {
+    }else {
         finalSource = type;
     }
 

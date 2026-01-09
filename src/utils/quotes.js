@@ -350,7 +350,6 @@ export const ISLAMIC_QUOTES = [
     },
 
     // --- أحاديث نبوية (Prophetic Hadiths) ---
-    [
     {
         "type": "HADITH",
         "text": "إنما الأعمال بالنيات، وإنما لكل امرئ ما نوى",
@@ -582,7 +581,9 @@ export const ISLAMIC_QUOTES = [
         "text_en": "O son of Adam, so long as you call upon Me and ask of Me, I shall forgive you for what you have done, and I shall not mind.",
         "source_en": "Sunan At-Tirmidhi"
     }
-]
+];
+
+// Function to get a random Islamic quote
 
 export const getRandomQuote = () => {
     const index = Math.floor(Math.random() * ISLAMIC_QUOTES.length);

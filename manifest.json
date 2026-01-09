@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "Prayer Focus",
-  "version": "1.0",
-  "description": "تنبيهات الصلاة الذكية والخشوع",
+  "name": "Sakina | سكينة",
+  "short_name": "Sakina",
+  "version": "1.0.1",
+  "description": "رفيقك للذكر والصلاة أثناء التصفح - Your companion for prayer and dhikr",
   "permissions": [
     "storage",
     "unlimitedStorage", 
@@ -38,7 +39,6 @@
         "assets/adhan.mp3",
         "assets/iqama.mp3",
         "assets/adhkar.mp3",
-        "assets/sunrise.mp3",
         "assets/icon16.png",
         "assets/icon48.png",
         "assets/icon128.png"
