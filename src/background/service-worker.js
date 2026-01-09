@@ -77,43 +77,47 @@ function isInPrayerCriticalWindow(appSettings, nextPrayerObj) {
    4. جدولة الصلوات والأذكار
    ========================================== */
 async function scheduleNextPrayer() {
-    const times = await chrome.storage.local.get(STORAGE_KEYS.PRAYER_TIMES);
-    const location = await chrome.storage.local.get(STORAGE_KEYS.USER_LOCATION);
-    const settings = await chrome.storage.local.get(STORAGE_KEYS.SETTINGS);
+    try {
+        const times = await chrome.storage.local.get(STORAGE_KEYS.PRAYER_TIMES);
+        const location = await chrome.storage.local.get(STORAGE_KEYS.USER_LOCATION);
+        const settings = await chrome.storage.local.get(STORAGE_KEYS.SETTINGS);
 
-    if (!times.prayer_times || !location.user_location) return;
+        if (!times.prayer_times || !location.user_location) return;
 
-    const timings = times.prayer_times;
-    const timezone = location.user_location.timezone;
-    const appSettings = settings.app_settings || {};
-    const enableSunrise = appSettings.enableSunrise === true;
+        const timings = times.prayer_times;
+        const timezone = location.user_location.timezone;
+        const appSettings = settings.app_settings || {};
+        const enableSunrise = appSettings.enableSunrise === true;
 
-    const nextPrayerObj = getNextPrayer(timings, timezone, enableSunrise);
-    if (!nextPrayerObj) return;
+        const nextPrayerObj = getNextPrayer(timings, timezone, enableSunrise);
+        if (!nextPrayerObj) return;
 
-    const nextPrayerTime = nextPrayerObj.time.getTime();
-    const now = Date.now();
+        const nextPrayerTime = nextPrayerObj.time.getTime();
+        const now = Date.now();
 
-    // جدولة الأذان والتنبيه المسبق
-    if (nextPrayerTime > now) {
-        chrome.alarms.create(ALARM_NAMES.NEXT_PRAYER, { when: nextPrayerTime });
+        // جدولة الأذان والتنبيه المسبق
+        if (nextPrayerTime > now) {
+            chrome.alarms.create(ALARM_NAMES.NEXT_PRAYER, { when: nextPrayerTime });
 
-        const preMinutes = Number(appSettings.preAdhanMinutes || 15);
-        const preTime = nextPrayerTime - (preMinutes * 60 * 1000);
-        if (preTime > now) {
-            chrome.alarms.create(ALARM_NAMES.PRE_PRAYER, { when: preTime });
+            const preMinutes = Number(appSettings.preAdhanMinutes || 15);
+            const preTime = nextPrayerTime - (preMinutes * 60 * 1000);
+            if (preTime > now) {
+                chrome.alarms.create(ALARM_NAMES.PRE_PRAYER, { when: preTime });
+            }
         }
-    }
 
-    // جدولة الأذكار الدورية
-    if (appSettings.adhkarEnabled === true) {
-        const interval = parseInt(appSettings.adhkarInterval) || 30;
-        const existingAlarm = await chrome.alarms.get(ALARM_NAMES.ADHKAR);
-        if (!existingAlarm || existingAlarm.periodInMinutes !== interval) {
-            chrome.alarms.create(ALARM_NAMES.ADHKAR, { periodInMinutes: interval });
+        // جدولة الأذكار الدورية
+        if (appSettings.adhkarEnabled === true) {
+            const interval = parseInt(appSettings.adhkarInterval) || 30;
+            const existingAlarm = await chrome.alarms.get(ALARM_NAMES.ADHKAR);
+            if (!existingAlarm || existingAlarm.periodInMinutes !== interval) {
+                chrome.alarms.create(ALARM_NAMES.ADHKAR, { periodInMinutes: interval });
+            }
+        } else {
+            chrome.alarms.clear(ALARM_NAMES.ADHKAR);
         }
-    } else {
-        chrome.alarms.clear(ALARM_NAMES.ADHKAR);
+    } catch (e) {
+        console.error("Error scheduling alarms:", e);
     }
 }
 
@@ -144,6 +148,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 
         const quote = getRandomQuote();
         showNotification('alertAdhkarTitle', quote.text, "NORMAL", null, quote);
+        // تم توحيد الصوت هنا (الأذكار)
         if (shouldPlaySound) playAudio('ADHKAR', 0.5);
         return;
     }
@@ -250,22 +255,25 @@ async function playAudio(type, volume = 1.0) {
 
     if (type === 'ADHAN') {
         finalSource = chrome.runtime.getURL('assets/adhan.mp3');
-        storageKey = 'custom_adhan_sound';
+        storageKey = 'custom_adhan_sound'; // مسموح بالتخصيص
     } else if (type === 'IQAMA') {
         finalSource = chrome.runtime.getURL('assets/iqama.mp3');
-        storageKey = 'custom_iqama_sound';
+        storageKey = 'custom_iqama_sound'; // مسموح بالتخصيص
     } else if (type === 'ADHKAR' || type === 'SUNRISE') {
+        // هنا التعديل: الشروق والأذكار يستخدمان نفس الملف الثابت ولا يمكن تخصيصهما
         finalSource = chrome.runtime.getURL('assets/adhkar.mp3');
-        storageKey = 'custom_adhkar_sound';
-    }else {
+        storageKey = null; // تعطيل التحقق من التخزين (لا تخصيص)
+    } else {
         finalSource = type;
     }
 
+    // التحقق من الملف المخصص (فقط إذا كان storageKey موجوداً)
     if (storageKey) {
         const data = await chrome.storage.local.get(storageKey);
         if (data[storageKey]) finalSource = data[storageKey];
     }
 
+    // تشغيل الـ Offscreen Document
     if (!(await hasOffscreenDocument())) {
         await chrome.offscreen.createDocument({
             url: OFFSCREEN_DOCUMENT_PATH,

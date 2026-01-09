@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prayer Focus</title>
+    <title>Sakina | سكينة</title>
     <link rel="stylesheet" href="popup.css">
-    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&family=Amiri:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&family=Amiri:wght@700&display=swap" rel="stylesheet">
 </head>
 <body>
 
@@ -16,7 +16,7 @@
 
     <div id="onboarding-view" class="view hidden">
         <div class="welcome-card">
-            <img src="../../assets/icon-128.png" alt="Logo" class="logo-img">
+            <img src="../assets/icon-128.png" alt="Logo" class="logo-img">
             <h2>مرحباً بك</h2>
             <p>لضبط مواقيت الصلاة بدقة</p>
             
@@ -26,11 +26,9 @@
             
             <div class="search-box">
                 <div class="input-wrapper" style="position: relative;">
-                    <input type="text" id="city-input" placeholder="ابدأ بكتابة المدينة (مثال: London)..." autocomplete="off">
+                    <input type="text" id="city-input" placeholder="اكتب اسم المدينة (مثال: Riyadh)..." autocomplete="off">
                     <ul id="suggestions-list" class="suggestions-list hidden"></ul>
                 </div>
-                
-                <input type="text" id="country-input" placeholder="الدولة (اختياري)">
                 
                 <button id="btn-manual-search" class="btn secondary-btn">بحث</button>
             </div>
@@ -39,36 +37,34 @@
 
     <div id="main-view" class="view hidden">
         <header class="main-header">
-            <div style="display: flex; flex-direction: column; gap: 2px;">
+            <div style="display: flex; flex-direction: column; gap: 4px;">
                 <div class="location-badge"><span id="location-name">...</span> 📍</div>
-                <div id="current-date" style="font-size: 11px; color: #888; margin-right: 5px;">...</div>
+                <div id="current-date" style="font-size: 12px; color: #888; margin-right: 5px;">...</div>
             </div>
-            <button id="btn-settings" class="icon-btn">⚙️</button>
+            <button id="btn-settings" class="icon-btn" title="الإعدادات">⚙️</button>
         </header>
 
-    <div class="countdown-card" id="dynamic-card">
-        <div class="atmosphere-container">
-            <div class="stars-layer"></div>
-            <div class="clouds-layer">
-                <div class="cloud cloud-1"></div>
-                <div class="cloud cloud-2"></div>
+        <div class="countdown-card" id="dynamic-card">
+            <div class="atmosphere-container">
+                <div class="stars-layer"></div>
+                <div class="clouds-layer">
+                    <div class="cloud cloud-1"></div>
+                    <div class="cloud cloud-2"></div>
+                </div>
+            </div>
+            
+            <div class="card-content">
+                <p class="status-text" id="date-display">الوقت المتبقي للصلاة القادمة</p>
+                <div id="countdown">00:00:00</div>
+                <h2 id="next-prayer-name">...</h2>
             </div>
         </div>
-        
-        <div class="card-content">
-            <p class="status-text" id="date-display">الوقت المتبقي للصلاة القادمة</p>
-            
-            <div id="countdown">00:00:00</div>
-            
-            <h2 id="next-prayer-name">...</h2>
-        </div>
-    </div>
 
         <div class="prayers-list" id="prayers-list">
             </div>
     </div>
 
-    <div id="settings-view" class="view hidden" style="background: #121212;">
+    <div id="settings-view" class="view hidden">
         <div class="settings-header">
             <h3>الإعدادات</h3>
             <button id="btn-close-settings" class="close-btn" title="إغلاق">
@@ -81,7 +77,7 @@
             <div class="settings-section">
                 <h4 class="section-title">عام</h4>
                 <div class="setting-group">
-                    <label data-i18n="labelLanguage">اللغة</label>
+                    <label>اللغة</label>
                     <select id="language-select" class="dropdown-select">
                         <option value="ar">العربية</option>
                         <option value="en">English</option>
@@ -174,14 +170,9 @@
                 </div>
             </div>
 
-            <div class="settings-content">
-                <div class="settings-footer">
-                    <button id="btn-save-settings" class="btn primary-btn">حفظ الإعدادات</button>
-                    
-                    <button id="btn-reset-location" class="btn danger-outline-btn">
-                        تغيير الموقع
-                    </button>
-                </div>
+            <div class="settings-footer">
+                <button id="btn-save-settings" class="btn primary-btn">حفظ الإعدادات</button>
+                <button id="btn-reset-location" class="btn danger-outline-btn">تغيير الموقع</button>
             </div>
         </div>
     </div>

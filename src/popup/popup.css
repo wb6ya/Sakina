@@ -12,6 +12,7 @@
     --text-main: #ffffff;
     --text-muted: #aaaaaa;
     --font-main: 'Tajawal', sans-serif;
+    --danger-color: #ff4757;
 }
 
 /* =========================================
@@ -38,7 +39,7 @@ body {
    ========================================= */
 .view {
     width: 100%;
-    height: 100%; /* ملء ارتفاع الـ Body */
+    height: 100%;
     padding: 20px;
     box-sizing: border-box;
     display: flex;
@@ -49,12 +50,13 @@ body {
 .hidden {
     display: none !important;
     opacity: 0;
+    pointer-events: none;
 }
 
 /* =========================================
    4. العناصر المشتركة (Buttons & Inputs)
    ========================================= */
-/* الأزرار العامة */
+/* الأزرار الأساسية */
 .btn {
     border: none;
     padding: 12px;
@@ -63,12 +65,15 @@ body {
     font-family: var(--font-main);
     font-weight: bold;
     width: 100%;
-    transition: 0.2s;
+    transition: all 0.2s ease;
+    position: relative;
+    z-index: 5;
 }
 
 .primary-btn {
     background: linear-gradient(45deg, var(--primary-color), #f3d066);
     color: #000;
+    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2);
 }
 .primary-btn:hover { opacity: 0.9; transform: translateY(-2px); }
 
@@ -77,22 +82,26 @@ body {
     color: var(--text-main);
     border: 1px solid #333;
 }
+.secondary-btn:hover { background: #252525; }
 
-.danger-btn { background: #ff4757; color: white; }
-
-.text-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 13px;
-    text-decoration: underline;
-    opacity: 0.7;
-    transition: 0.2s;
+/* زر الحدود الحمراء (Danger Outline) */
+.danger-outline-btn {
+    background: transparent;
+    border: 1px solid rgba(255, 71, 87, 0.5);
+    color: var(--danger-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
 }
-.text-btn:hover { opacity: 1; }
-.text-btn.danger { color: #ff4757; }
+.danger-outline-btn:hover {
+    background: rgba(255, 71, 87, 0.1);
+    border-color: var(--danger-color);
+    transform: translateY(-1px);
+}
+.danger-outline-btn::before { content: "📍"; font-size: 14px; opacity: 0.8; }
 
-/* أزرار الأيقونات */
+/* أزرار الأيقونات (Settings Icon) */
 .icon-btn {
     background: none;
     border: none;
@@ -103,7 +112,7 @@ body {
 }
 .icon-btn:hover { color: white; transform: rotate(45deg); }
 
-/* أزرار الإجراءات الصغيرة (مثل رفع الملفات) */
+/* أزرار الإجراءات الصغيرة (Upload/Reset) */
 .icon-action-btn {
     background: #2a2a2a;
     border: 1px solid #444;
@@ -124,9 +133,16 @@ body {
     border-color: var(--primary-color);
 }
 .icon-action-btn.danger:hover {
-    background: #ff4757;
+    background: var(--danger-color);
     color: white;
-    border-color: #ff4757;
+    border-color: var(--danger-color);
+}
+
+/* حالة التحميل للزر */
+.btn-loading {
+    opacity: 0.7;
+    cursor: wait !important;
+    pointer-events: none;
 }
 
 /* =========================================
@@ -144,50 +160,52 @@ body {
 }
 
 /* =========================================
-   6. شاشة الترحيب (Onboarding View)
+   6. شاشة الترحيب والبحث (Onboarding)
    ========================================= */
 .welcome-card { text-align: center; margin-top: 20px; }
 .logo-img { width: 80px; margin-bottom: 10px; }
 
-.search-box { position: relative; display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
+.search-box {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 15px;
+    z-index: 10;
+}
+
 .search-box input {
-    padding: 10px;
+    width: 100%;
+    padding: 12px;
+    box-sizing: border-box;
     border-radius: 8px;
     border: 1px solid #333;
     background: #222;
     color: white;
     text-align: center;
     font-family: inherit;
+    outline: none;
 }
+.search-box input:focus { border-color: var(--primary-color); }
+
 .divider { margin: 15px 0; color: var(--text-muted); font-size: 12px; }
 
-/* قائمة الاقتراحات (Autocomplete) */
-/* --- حاوية البحث --- */
-.search-box {
-    position: relative; 
-    z-index: 100; /* رفع قيمة الطبقة لضمان ظهور القائمة فوق الأزرار */
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-/* --- قائمة الاقتراحات الذكية --- */
+/* --- قائمة الاقتراحات الذكية (Autocomplete) --- */
 #suggestions-list {
     position: absolute;
     top: 100%; 
     left: 0;
     right: 0;
     background: #1e1e1e;
-    border: 1px solid #d4af37; /* حدود ذهبية خفيفة لتمييزها */
+    border: 1px solid var(--primary-color);
     border-radius: 0 0 12px 12px;
     list-style: none;
     padding: 0;
     margin: 2px 0 0 0;
     max-height: 200px;
     overflow-y: auto;
-    z-index: 9999; 
+    z-index: 9999; /* أعلى من كل شيء ما عدا المودال */
     box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-    /* لا تضع display: none هنا، سنحكم بها من JS عبر الكلاس hidden */
 }
 
 .suggestion-item {
@@ -200,7 +218,7 @@ body {
     color: #eee;
     font-size: 14px;
     transition: all 0.2s ease;
-    text-align: right; /* التأكد من محاذاة النص لليمين */
+    text-align: right;
 }
 
 .suggestion-item:hover {
@@ -208,18 +226,9 @@ body {
     color: var(--primary-color);
     padding-right: 20px;
 }
+.suggestion-item:last-child { border-bottom: none; }
+.suggestion-item .loc-icon { font-size: 14px; opacity: 0.6; }
 
-.suggestion-item .loc-icon {
-    font-size: 14px;
-    opacity: 0.6;
-}
-
-/* كلاس مخصص لتغيير شكل الزر أثناء البحث */
-.btn-loading {
-    opacity: 0.7;
-    cursor: wait !important;
-    pointer-events: none;
-}
 /* =========================================
    7. الشاشة الرئيسية (Main View)
    ========================================= */
@@ -233,10 +242,10 @@ body {
     border: 1px solid #333;
 }
 
-/* --- بطاقة العد التنازلي (Dynamic Card) --- */
+/* بطاقة العد التنازلي */
 .countdown-card {
     position: relative;
-    overflow: hidden; /* لاحتواء الغيوم */
+    overflow: hidden;
     padding: 20px;
     border-radius: 16px;
     text-align: center;
@@ -246,62 +255,31 @@ body {
     background: linear-gradient(135deg, #1a2a3a, #0d1117);
     transition: background 1.5s ease-in-out;
 }
-
-/* أوضاع البطاقة (نهار/ليل) */
 .countdown-card.is-day { background: linear-gradient(135deg, #5dade2, #2e86c1); }
 .countdown-card.is-night { background: linear-gradient(135deg, #1a2a3a, #0f172a); }
 
-/* المحتوى النصي داخل البطاقة */
-.card-content {
-    position: relative;
-    z-index: 5;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-}
+.card-content { position: relative; z-index: 5; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
 .status-text { font-size: 12px; color: #a5d8ff; margin: 0; opacity: 0.8; }
 #countdown { font-size: 38px; margin: 5px 0; font-family: 'Segoe UI', monospace; letter-spacing: 1px; font-weight: 700; direction: ltr; }
 #next-prayer-name { font-size: 16px; color: var(--primary-color); margin: 0; font-weight: bold; }
 
-/* الغلاف الجوي (Atmosphere) */
-.atmosphere-container {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    z-index: 1; pointer-events: none;
-}
-
-/* النجوم */
+/* الغلاف الجوي */
+.atmosphere-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
 .stars-layer {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    background-image: 
-        radial-gradient(1px 1px at 20px 30px, #fff, rgba(0,0,0,0)),
-        radial-gradient(1px 1px at 40px 70px, #fff, rgba(0,0,0,0)),
-        radial-gradient(1.5px 1.5px at 90px 40px, #fff, rgba(0,0,0,0)),
-        radial-gradient(2px 2px at 250px 20px, #ffffff, rgba(0,0,0,0));
-    background-repeat: repeat;
-    background-size: 320px 200px;
-    opacity: 0;
-    transition: opacity 1.5s ease-in-out;
+    background-image: radial-gradient(1px 1px at 20px 30px, #fff, rgba(0,0,0,0)), radial-gradient(2px 2px at 250px 20px, #ffffff, rgba(0,0,0,0));
+    background-repeat: repeat; opacity: 0; transition: opacity 1.5s;
 }
 .countdown-card.is-night .stars-layer { opacity: 1; animation: twinkle 4s infinite alternate; }
 
-/* الغيوم */
-.clouds-layer {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    opacity: 0;
-    transition: opacity 1.5s ease-in-out;
-    filter: blur(8px);
-}
+.clouds-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 1.5s; filter: blur(8px); }
 .countdown-card.is-day .clouds-layer { opacity: 1; }
-
 .cloud { position: absolute; background: radial-gradient(circle, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0) 70%); border-radius: 50%; }
 .cloud-1 { width: 200px; height: 150px; top: -40px; left: -50px; animation: floatCloud 25s infinite linear; }
 .cloud-2 { width: 250px; height: 180px; top: 60%; right: -80px; animation: floatCloud 30s infinite linear reverse; }
 
-/* --- قائمة الصلوات --- */
-.prayers-list { 
-    flex: 1;
-    overflow-y: auto;
-    display: flex; flex-direction: column; gap: 8px;
-    padding-right: 5px;
-}
+/* قائمة الصلوات */
+.prayers-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 5px; }
 .prayer-item {
     display: flex; justify-content: space-between; align-items: center;
     padding: 12px 15px;
@@ -311,65 +289,60 @@ body {
     transition: 0.2s;
 }
 .prayer-item:hover { background: #252525; }
-
-/* الحالات النشطة */
 .prayer-item.active { background: #2a2510; border-right-color: var(--primary-color); }
 .prayer-item.active .prayer-name { color: var(--primary-color); font-weight: bold; }
 .prayer-item.active .prayer-time { color: white; font-weight: bold; }
-
-/* الشروق */
-.prayer-item.prayer-sunrise { opacity: 0.9; }
 .prayer-item.prayer-sunrise .prayer-name { color: var(--sunrise-color); }
-.prayer-item.prayer-sunrise.active { background: rgba(245, 158, 11, 0.1); border-right-color: var(--sunrise-color); }
 
 .prayer-time { font-family: 'Segoe UI', sans-serif; font-size: 14px; color: var(--text-muted); direction: ltr; }
 .prayer-name { font-size: 14px; color: var(--text-muted); }
 
 /* =========================================
-   8. صفحة الإعدادات (Settings View - Full Page)
+   8. شاشة الإعدادات (Settings View)
    ========================================= */
 #settings-view {
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    background-color: #121212;
-    z-index: 1000;
-    overflow-y: auto;
-    padding-bottom: 20px;
-    
-    /* حركة الدخول (Slide Up) */
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background-color: #121212; z-index: 1000;
+    overflow-y: auto; padding-bottom: 20px;
     transform: translateY(100%);
     transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-    display: block !important;
 }
 #settings-view.active { transform: translateY(0); }
+/* عند عدم النشاط، نمنع التفاعل معها لكي لا تغطي على الشاشات الأخرى */
+#settings-view:not(.active) { pointer-events: none; }
 
 .settings-header {
     position: sticky; top: 0;
-    background: rgba(18, 18, 18, 0.95);
-    backdrop-filter: blur(10px);
-    z-index: 10;
-    padding: 15px 20px;
-    border-bottom: 1px solid #333;
+    background: rgba(18, 18, 18, 0.98);
+    backdrop-filter: blur(12px);
+    z-index: 20;
+    padding: 16px 24px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     display: flex; justify-content: space-between; align-items: center;
 }
-.close-btn { background: none; border: none; font-size: 24px; color: white; cursor: pointer; }
-.settings-content { padding: 20px; }
+.settings-header h3 { margin: 0; font-size: 18px; color: var(--text-main); }
 
-/* أقسام الإعدادات */
+.close-btn {
+    background: rgba(255, 255, 255, 0.05); border: none; width: 36px; height: 36px;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted); cursor: pointer; transition: all 0.2s ease;
+}
+.close-btn:hover { background: rgba(255, 255, 255, 0.15); color: white; transform: rotate(90deg); }
+.close-btn svg { width: 20px; height: 20px; }
+
+.settings-content { padding: 20px; }
 .settings-section { margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #2a2a2a; }
 .settings-section:last-child { border-bottom: none; }
-.section-title { margin: 0 0 12px 0; font-size: 12px; color: var(--primary-color); text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.8; }
+.section-title { margin: 0 0 12px 0; font-size: 12px; color: var(--primary-color); opacity: 0.8; }
 
-/* المجموعات والمدخلات */
 .setting-group { margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-.dropdown-select { padding: 6px 10px; border-radius: 6px; background: #2a2a2a; color: white; border: 1px solid #444; outline: none; font-family: inherit; }
+.dropdown-select { padding: 6px 10px; border-radius: 6px; background: #2a2a2a; color: white; border: 1px solid #444; outline: none; }
 
 /* حقول الوقت */
 .time-inputs-row { display: flex; gap: 15px; }
 .setting-group.compact { flex: 1; display: flex; flex-direction: column; align-items: flex-start; }
 .setting-group.compact label { font-size: 12px; margin-bottom: 5px; }
-.setting-group.compact input { width: 100%; text-align: center; background: #222; border: 1px solid #333; padding: 8px; border-radius: 6px; color: white; }
+.setting-group.compact input { width: 100%; box-sizing: border-box; text-align: center; background: #222; border: 1px solid #333; padding: 8px; border-radius: 6px; color: white; }
 
 /* Switch Toggle */
 .switch { position: relative; display: inline-block; width: 46px; height: 24px; }
@@ -388,7 +361,7 @@ input:checked + .slider:before { transform: translateX(22px); }
 .audio-actions { display: flex; gap: 8px; }
 .separator { height: 1px; background: #333; margin: 10px 0; }
 
-.settings-footer { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+.settings-footer { margin-top: 30px; display: flex; flex-direction: column; gap: 12px; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.05); }
 
 /* =========================================
    9. النوافذ المنبثقة (Modals)
@@ -396,7 +369,7 @@ input:checked + .slider:before { transform: translateX(22px); }
 .modal-overlay {
     position: absolute; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(4px);
-    z-index: 2000;
+    z-index: 2000; /* أعلى قيمة لضمان الظهور فوق كل شيء */
     display: flex; justify-content: center; align-items: center;
     opacity: 0; pointer-events: none; transition: opacity 0.2s;
 }
@@ -405,8 +378,7 @@ input:checked + .slider:before { transform: translateX(22px); }
 .modal-card {
     background: var(--card-bg); width: 85%; padding: 20px;
     border-radius: 16px; border: 1px solid #333;
-    text-align: center;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     transform: scale(0.9); transition: transform 0.2s;
 }
 .modal-overlay.show .modal-card { transform: scale(1); }
@@ -414,129 +386,6 @@ input:checked + .slider:before { transform: translateX(22px); }
 .modal-card h3 { margin: 0 0 10px 0; color: white; }
 .modal-card p { color: #ccc; font-size: 14px; margin-bottom: 20px; line-height: 1.5; }
 .modal-actions { display: flex; gap: 10px; justify-content: center; }
-
-
-/* --- تحسين الهيدر (Header Polish) --- */
-.settings-header {
-    position: sticky;
-    top: 0;
-    background: rgba(18, 18, 18, 0.98); /* شبه شفاف */
-    backdrop-filter: blur(12px);         /* تأثير زجاجي قوي */
-    z-index: 20;
-    padding: 16px 24px;                  /* مساحة أكبر */
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.settings-header h3 {
-    margin: 0;
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--text-main);
-    letter-spacing: 0.5px;
-}
-
-/* زر الإغلاق الدائري */
-.close-btn {
-    background: rgba(255, 255, 255, 0.05);
-    border: none;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-muted);
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.close-btn:hover {
-    background: rgba(255, 255, 255, 0.15);
-    color: white;
-    transform: rotate(90deg); /* حركة دوران لطيفة */
-}
-
-.close-btn svg {
-    width: 20px;
-    height: 20px;
-}
-
-/* --- تحسين الفوتر والأزرار (Footer Polish) --- */
-.settings-footer {
-    margin-top: 30px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding-top: 20px;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-/* زر الحفظ (Primary) - تحسين الظل */
-.primary-btn {
-    box-shadow: 0 4px 15px rgba(212, 175, 55, 0.2); /* ظل ذهبي خفيف */
-    font-weight: 800;
-    font-size: 15px;
-}
-
-/* زر تغيير الموقع (Danger Outline) - التصميم الجديد */
-.danger-outline-btn {
-    background: transparent;
-    border: 1px solid rgba(255, 71, 87, 0.5); /* أحمر شفاف */
-    color: #ff4757;
-    font-family: var(--font-main);
-    font-weight: 600;
-    font-size: 14px;
-    padding: 12px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 8px;
-}
-
-.danger-outline-btn:hover {
-    background: rgba(255, 71, 87, 0.1); /* خلفية حمراء خفيفة جداً عند التحويم */
-    border-color: #ff4757;
-    transform: translateY(-1px);
-}
-
-.danger-outline-btn:active {
-    transform: translateY(1px);
-}
-
-/* أيقونة اختيارية تضاف عبر CSS لزر الحذف */
-.danger-outline-btn::before {
-    content: "📍";
-    font-size: 14px;
-    opacity: 0.8;
-}
-
-/* ضمان ظهور قائمة الاقتراحات فوق كل شيء في شاشة الترحيب */
-.search-box {
-    position: relative; /* ضروري لعمل القائمة المنسدلة */
-    z-index: 10;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-/* تحسين استجابة الأزرار للنقر */
-.btn {
-    position: relative;
-    z-index: 5;
-    cursor: pointer !important;
-    pointer-events: auto !important;
-}
-
-/* تأكد أن شاشة الإعدادات لا تحجب شاشة الترحيب عند البدء */
-#settings-view:not(.active) {
-    pointer-events: none; /* يمنع التفاعل معها وهي مخفية */
-}
 
 /* =========================================
    10. الرسوم المتحركة (Animations)

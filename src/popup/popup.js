@@ -1,11 +1,13 @@
 /**
  * @file popup.js
- * @description النسخة الاحترافية الشاملة (البحث الذكي، المواقع، الجمعة، الأذكار)
+ * @description النسخة النهائية المتكاملة (تستخدم api.js, locations.js وتدعم رفع الصوتيات)
  */
 
 import { TRANSLATIONS } from '../utils/translations.js';
-import { getNextPrayer, getCurrentIqamaPeriod, getNowInZone } from '../utils/time-utils.js';
-import { getFromStorage, saveToStorage, STORAGE_KEYS } from '../utils/storage.js';
+import { getNextPrayer, getNowInZone } from '../utils/time-utils.js';
+import { getFromStorage, saveToStorage, STORAGE_KEYS, removeFromStorage } from '../utils/storage.js';
+import { fetchPrayerTimes } from '../utils/api.js';
+import { getGeolocation } from '../utils/locations.js';
 
 /* ---------------------------------------------------
     1. تعريف العناصر (DOM Objects)
@@ -53,13 +55,26 @@ const settingsUI = {
     btnClose: getEl('btn-close-settings'),
     btnSave: getEl('btn-save-settings'),
     btnReset: getEl('btn-reset-location'),
+    
     inputPreTime: getEl('input-pre-time'),
     inputIqamaTime: getEl('input-iqama-time'),
+    
     toggleAdhan: getEl('toggle-adhan-sound'),
     toggleSunrise: getEl('toggle-sunrise'),
     toggleFullscreen: getEl('toggle-fullscreen-iqama'),
     toggleAdhkar: getEl('toggle-adhkar'),
-    inputAdhkarTime: getEl('input-adhkar-time')
+    inputAdhkarTime: getEl('input-adhkar-time'),
+
+    // عناصر الصوتيات الجديدة
+    btnUploadAdhan: getEl('btn-upload-adhan'),
+    inputUploadAdhan: getEl('upload-adhan'),
+    btnResetAdhan: getEl('btn-reset-adhan'),
+    statusAdhan: getEl('status-adhan'),
+
+    btnUploadIqama: getEl('btn-upload-iqama'),
+    inputUploadIqama: getEl('upload-iqama'),
+    btnResetIqama: getEl('btn-reset-iqama'),
+    statusIqama: getEl('status-iqama')
 };
 
 let countdownInterval = null;
@@ -107,15 +122,11 @@ function showConfirm(title, message, icon = '🤔') {
 /* ---------------------------------------------------
     3. معالجة المواقع والبحث الذكي
 --------------------------------------------------- */
-
-/**
- * جلب الاقتراحات من API الخرائط
- */
 async function fetchCitySuggestions(query) {
     try {
         const lang = document.body.lang || 'ar';
         const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1&accept-language=${lang}`;
-        const response = await fetch(url, { headers: { 'User-Agent': 'PrayerFocusExtension/1.1' } });
+        const response = await fetch(url, { headers: { 'User-Agent': 'SakinaApp/1.0' } });
         const results = await response.json();
         displaySuggestions(results);
     } catch (err) {
@@ -123,25 +134,16 @@ async function fetchCitySuggestions(query) {
     }
 }
 
-/**
- * رسم قائمة الاقتراحات تحت حقل البحث
- */
 function displaySuggestions(results) {
     if (!search.suggestionsList) return;
-    
-    // 1. تنظيف القائمة تماماً
     search.suggestionsList.innerHTML = '';
     
-    // 2. التحقق من وجود نتائج
     if (!results || results.length === 0) {
-        search.suggestionsList.classList.add('hidden'); // إخفاء باستخدام الكلاس
-        search.suggestionsList.style.display = 'none';   // زيادة تأكيد الإخفاء
+        search.suggestionsList.classList.add('hidden');
+        search.suggestionsList.style.display = 'none';
         return;
     }
 
-    // 
-
-    // 3. بناء العناصر
     results.forEach(item => {
         const addr = item.address;
         const cityName = addr.city || addr.town || addr.village || addr.suburb || addr.state || item.display_name.split(',')[0];
@@ -150,82 +152,60 @@ function displaySuggestions(results) {
         
         const li = document.createElement('li');
         li.className = 'suggestion-item';
-        // إضافة أيقونة الدبوس مع النص
         li.innerHTML = `<span class="loc-icon">📍</span><span class="loc-text">${fullLabel}</span>`;
         
-        // منع تداخل النقر مع العناصر الخلفية
         li.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            
+            e.preventDefault(); e.stopPropagation();
             search.cityInput.value = cityName;
-            
-            // إخفاء القائمة فور الاختيار
             search.suggestionsList.classList.add('hidden');
             search.suggestionsList.style.display = 'none';
-            
-            // استدعاء دالة التأكيد
             confirmAndSelectLocation(item.lat, item.lon, fullLabel);
         });
         
         search.suggestionsList.appendChild(li);
     });
 
-    // 4. الإظهار الفعلي (إزالة كلاس hidden وتحديد النوع block)
     search.suggestionsList.classList.remove('hidden');
     search.suggestionsList.style.display = 'block';
-    
-    // تصحيح برمجي لضمان بقاء القائمة فوق العناصر الأخرى
     search.suggestionsList.style.zIndex = "9999";
 }
 
-/**
- * تأكيد الموقع قبل اعتماده نهائياً
- */
 async function confirmAndSelectLocation(lat, lon, displayName) {
-    const confirmed = await showConfirm(
-        TRANSLATIONS[document.body.lang].appTitle, 
-        `هل تريد اعتماد هذا الموقع؟<br><strong>${displayName}</strong>`, 
-        "📍"
-    );
+    const appTitle = TRANSLATIONS[document.body.lang]?.appTitle || 'Sakina';
+    const confirmed = await showConfirm(appTitle, `هل تريد اعتماد هذا الموقع؟<br><strong>${displayName}</strong>`, "📍");
     if (confirmed) handleLocationSelection(lat, lon, displayName);
 }
 
-/**
- * جلب مواقيت الصلاة للموقع المختار وحفظه
- */
 async function handleLocationSelection(lat, lon, displayName) {
     switchView('loading');
-    try {
-        const res = await fetch(`https://api.aladhan.com/v1/timings?latitude=${lat}&longitude=${lon}&method=4`);
-        const data = await res.json();
-        if (data.code === 200) {
-            const locObj = { name: displayName, lat, lng: lon, timezone: data.data.meta.timezone };
-            await saveToStorage(STORAGE_KEYS.USER_LOCATION, locObj);
-            await saveToStorage(STORAGE_KEYS.PRAYER_TIMES, data.data.timings);
-            chrome.runtime.sendMessage({ action: 'RESHEDULE_ALARMS' });
-            loadMainView(locObj);
-        }
-    } catch (e) {
-        showToast("خطأ", "فشل الاتصال، تحقق من الإنترنت", "⚠️");
+    const apiData = await fetchPrayerTimes(lat, lon);
+    
+    if (apiData) {
+        const locObj = { name: displayName, lat, lng: lon, timezone: apiData.meta.timezone };
+        await saveToStorage(STORAGE_KEYS.USER_LOCATION, locObj);
+        await saveToStorage(STORAGE_KEYS.PRAYER_TIMES, apiData.timings);
+        chrome.runtime.sendMessage({ action: 'RESHEDULE_ALARMS' });
+        loadMainView(locObj);
+    } else {
+        showToast("خطأ", "فشل الاتصال بالخادم، حاول مرة أخرى", "⚠️");
         switchView('onboarding');
     }
 }
 
-/**
- * البحث اليدوي عند ضغط الزر
- */
 async function handleManualSearch(query) {
-    const t = TRANSLATIONS[document.body.lang || 'ar'];
+    const searchQuery = query || search.cityInput.value.trim();
+    if (!searchQuery) {
+        showToast("تنبيه", "يرجى إدخال اسم المدينة", "✍️");
+        return;
+    }
+
     const originalText = search.btnManual.textContent;
-    
-    // 1. إظهار حالة البحث (Visual Feedback)
-    search.btnManual.textContent = "... جارٍ البحث";
+    search.btnManual.textContent = "...";
     search.btnManual.classList.add('btn-loading');
     search.btnManual.disabled = true;
 
     try {
-        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&addressdetails=1`;
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1&addressdetails=1`;
         const response = await fetch(url);
         const results = await response.json();
 
@@ -234,16 +214,13 @@ async function handleManualSearch(query) {
             const city = item.address.city || item.address.town || item.address.village || item.name;
             const country = item.address.country;
             const fullDisplayName = `${city}, ${country}`;
-
-            // استدعاء التأكيد
             confirmAndSelectLocation(item.lat, item.lon, fullDisplayName);
         } else {
-            showToast("عذراً", "لم يتم العثور على المدينة، حاول كتابة الاسم بشكل أدق", "❓");
+            showToast("عذراً", "لم يتم العثور على المدينة", "❓");
         }
     } catch (err) {
         showToast("خطأ", "تحقق من اتصالك بالإنترنت", "⚠️");
     } finally {
-        // 2. إعادة الزر لوضعه الطبيعي
         search.btnManual.textContent = originalText;
         search.btnManual.classList.remove('btn-loading');
         search.btnManual.disabled = false;
@@ -251,7 +228,57 @@ async function handleManualSearch(query) {
 }
 
 /* ---------------------------------------------------
-    4. تحديث الواجهة واللغة (UI & Lang)
+    4. إدارة الصوتيات (Audio Management) - جديد 🎵
+--------------------------------------------------- */
+const handleFileUpload = async (file, storageKey, statusElement) => {
+    if (!file) return;
+
+    // التحقق من الحجم (مثلاً 5 ميجابايت)
+    if (file.size > 5 * 1024 * 1024) {
+        showToast("خطأ", "الملف كبير جداً. الحد الأقصى 5 ميجابايت", "⚠️");
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        const base64Audio = e.target.result;
+        const success = await saveToStorage(storageKey, base64Audio);
+        if (success) {
+            statusElement.textContent = "مخصص (Custom)";
+            statusElement.style.color = "#4CAF50"; // أخضر
+            showToast("تم", "تم حفظ الملف الصوتي بنجاح", "✅");
+        } else {
+            showToast("خطأ", "فشل حفظ الملف", "❌");
+        }
+    };
+    reader.readAsDataURL(file);
+};
+
+const handleFileReset = async (storageKey, statusElement) => {
+    const success = await removeFromStorage([storageKey]);
+    if (success) {
+        statusElement.textContent = "الافتراضي";
+        statusElement.style.color = "#666";
+        showToast("تم", "تمت استعادة الصوت الافتراضي", "↺");
+    }
+};
+
+const updateAudioStatusUI = async () => {
+    const customAdhan = await getFromStorage(STORAGE_KEYS.CUSTOM_ADHAN);
+    const customIqama = await getFromStorage(STORAGE_KEYS.CUSTOM_IQAMA);
+
+    if (customAdhan) {
+        settingsUI.statusAdhan.textContent = "مخصص";
+        settingsUI.statusAdhan.style.color = "var(--primary-color)";
+    }
+    if (customIqama) {
+        settingsUI.statusIqama.textContent = "مخصص";
+        settingsUI.statusIqama.style.color = "var(--primary-color)";
+    }
+};
+
+/* ---------------------------------------------------
+    5. تحديث الواجهة واللغة (UI & Lang)
 --------------------------------------------------- */
 function applyLanguage(lang) {
     const t = TRANSLATIONS[lang] || TRANSLATIONS['ar'];
@@ -326,9 +353,6 @@ function updateHeader(prayerKey, isIqama, lang, isFriday) {
     mainUI.dateDisplay.textContent = isIqama ? t.elapsedTime : t.remainingTime;
 }
 
-/* ---------------------------------------------------
-    5. إدارة الأحداث والعد التنازلي (Logic)
---------------------------------------------------- */
 function startCountdown(baseTime, isIqama, timezone) {
     clearInterval(countdownInterval);
     const tick = () => {
@@ -351,7 +375,31 @@ const msToTime = (d) => {
     return [h, m, s].map(v => String(v).padStart(2, '0')).join(':');
 };
 
-// ربط البحث الذكي المطور
+/* ---------------------------------------------------
+    6. إدارة الإعدادات والأحداث (Settings & Events)
+--------------------------------------------------- */
+
+// دالة لملء واجهة الإعدادات بالقيم المحفوظة
+async function populateSettingsUI() {
+    const settings = await getFromStorage(STORAGE_KEYS.SETTINGS) || {};
+    
+    settingsUI.langSelect.value = settings.language || 'ar';
+    settingsUI.toggleAdhan.checked = settings.adhanSound !== false; // الافتراضي true
+    settingsUI.toggleSunrise.checked = settings.enableSunrise === true;
+    settingsUI.toggleFullscreen.checked = settings.fullscreenIqama === true;
+    settingsUI.toggleAdhkar.checked = settings.adhkarEnabled === true;
+    
+    settingsUI.inputPreTime.value = settings.preAdhanMinutes || 15;
+    settingsUI.inputIqamaTime.value = settings.iqamaMinutes || 25;
+    settingsUI.inputAdhkarTime.value = settings.adhkarInterval || 30;
+
+    // تحديث حالة الصوتيات
+    await updateAudioStatusUI();
+}
+
+// --- ربط الأحداث (Event Listeners) ---
+
+// 1. البحث الذكي (Input)
 if (search.cityInput) {
     search.cityInput.addEventListener('input', (e) => {
         const query = e.target.value.trim();
@@ -369,58 +417,40 @@ if (search.cityInput) {
             search.suggestionsList.style.display = 'block';
         }
     });
+    
+    search.cityInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') handleManualSearch();
+    });
 }
 
-// الأزرار الرئيسية
 search.btnManual.onclick = () => handleManualSearch();
 
+// 2. الموقع التلقائي
 search.btnAuto.onclick = async () => {
-    const t = TRANSLATIONS[document.body.lang || 'ar'];
     const originalText = search.btnAuto.textContent;
-    
-    search.btnAuto.textContent = "... جارٍ تحديد موقعك";
+    search.btnAuto.textContent = "...";
     search.btnAuto.disabled = true;
 
-    navigator.geolocation.getCurrentPosition(
-        async (p) => {
-            const lat = p.coords.latitude;
-            const lon = p.coords.longitude;
+    try {
+        const coords = await getGeolocation();
+        const lang = document.body.lang || 'ar';
+        const geoUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lng}&addressdetails=1&accept-language=${lang}`;
+        const response = await fetch(geoUrl);
+        const data = await response.json();
+        
+        const addr = data.address;
+        const cityName = addr.city || addr.town || addr.village || addr.suburb || addr.state || data.display_name.split(',')[0];
+        const countryName = addr.country || "";
+        const fullDisplayName = `${cityName}${countryName ? '، ' + countryName : ''}`;
 
-            try {
-                // 1. عملية البحث العكسي لجلب اسم المدينة الحقيقي
-                const lang = document.body.lang || 'ar';
-                const geoUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&addressdetails=1&accept-language=${lang}`;
-                
-                const response = await fetch(geoUrl, {
-                    headers: { 'User-Agent': 'PrayerFocusApp/1.1' }
-                });
-                const data = await response.json();
+        handleLocationSelection(coords.lat, coords.lng, fullDisplayName);
 
-                // 2. استخلاص اسم المدينة بذكاء
-                const addr = data.address;
-                const cityName = addr.city || addr.town || addr.village || addr.suburb || addr.state || data.display_name.split(',')[0];
-                const countryName = addr.country || "";
-                const fullDisplayName = `${cityName}${countryName ? '، ' + countryName : ''}`;
-
-                // 3. تمرير الاسم الحقيقي بدلاً من "موقعي الحالي"
-                handleLocationSelection(lat, lon, fullDisplayName);
-                
-            } catch (error) {
-                console.error("Reverse Geocoding Error:", error);
-                // في حال فشل جلب الاسم، نستخدم "موقعي الحالي" كاحتياط
-                handleLocationSelection(lat, lon, "موقعي الحالي");
-            } finally {
-                search.btnAuto.textContent = originalText;
-                search.btnAuto.disabled = false;
-            }
-        },
-        () => {
-            showToast("خطأ", "فشل الوصول للموقع، يرجى تفعيل الـ GPS في المتصفح", "🚫");
-            search.btnAuto.textContent = originalText;
-            search.btnAuto.disabled = false;
-        },
-        { timeout: 10000 }
-    );
+    } catch (error) {
+        showToast("خطأ", error.message || "فشل تحديد الموقع", "🚫");
+    } finally {
+        search.btnAuto.textContent = originalText;
+        search.btnAuto.disabled = false;
+    }
 };
 
 settingsUI.btnReset.onclick = async () => {
@@ -432,13 +462,24 @@ settingsUI.btnReset.onclick = async () => {
     }
 };
 
-// إغلاق القوائم عند النقر في الخارج
 document.addEventListener('click', (e) => {
-    if (!search.cityInput.contains(e.target)) search.suggestionsList.style.display = 'none';
+    if (search.cityInput && !search.cityInput.contains(e.target)) {
+        if(search.suggestionsList) search.suggestionsList.style.display = 'none';
+    }
 });
 
-// دوال التشغيل والإغلاق
-mainUI.btnSettings.onclick = () => {
+// 3. أزرار الصوتيات (جديد)
+settingsUI.btnUploadAdhan.onclick = () => settingsUI.inputUploadAdhan.click();
+settingsUI.inputUploadAdhan.onchange = (e) => handleFileUpload(e.target.files[0], STORAGE_KEYS.CUSTOM_ADHAN, settingsUI.statusAdhan);
+settingsUI.btnResetAdhan.onclick = () => handleFileReset(STORAGE_KEYS.CUSTOM_ADHAN, settingsUI.statusAdhan);
+
+settingsUI.btnUploadIqama.onclick = () => settingsUI.inputUploadIqama.click();
+settingsUI.inputUploadIqama.onchange = (e) => handleFileUpload(e.target.files[0], STORAGE_KEYS.CUSTOM_IQAMA, settingsUI.statusIqama);
+settingsUI.btnResetIqama.onclick = () => handleFileReset(STORAGE_KEYS.CUSTOM_IQAMA, settingsUI.statusIqama);
+
+// 4. فتح الإعدادات (مع تعبئة البيانات)
+mainUI.btnSettings.onclick = async () => {
+    await populateSettingsUI(); // 👈 إصلاح مهم: تعبئة القيم عند الفتح
     views.settings.classList.remove('hidden');
     requestAnimationFrame(() => views.settings.classList.add('active'));
 };
@@ -456,8 +497,8 @@ settingsUI.btnSave.onclick = async () => {
         fullscreenIqama: settingsUI.toggleFullscreen.checked,
         preAdhanMinutes: +settingsUI.inputPreTime.value || 15,
         iqamaMinutes: +settingsUI.inputIqamaTime.value || 25,
-        adhkarEnabled: settingsUI.toggleAdhkar?.checked || false,
-        adhkarInterval: +settingsUI.inputAdhkarTime?.value || 30
+        adhkarEnabled: settingsUI.toggleAdhkar.checked,
+        adhkarInterval: +settingsUI.inputAdhkarTime.value || 30
     });
     chrome.runtime.sendMessage({ action: 'RESHEDULE_ALARMS' });
     settingsUI.btnClose.click();
