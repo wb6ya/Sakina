@@ -1,128 +1,65 @@
-🕌 Prayer Focus – Chrome / Edge / Firefox Extension
+# 🕌 Prayer Focus – Prayer Times & Reminders Extension
 
-Prayer Focus is a lightweight browser extension for accurate prayer times, reminders, Adhan, Iqama, Adhkar, and Sunrise notifications with a clean and non-intrusive interface.
+![Version](https://img.shields.io/badge/version-1.0.0-blue) ![License](https://img.shields.io/badge/license-MIT-green) ![Platform](https://img.shields.io/badge/platform-Chrome%2C%20Edge%2C%20Firefox-orange)
 
-✨ Features
+**Prayer Focus** هي إضافة متصفح خفيفة تتيح معرفة مواقيت الصلاة بدقة، مع تنبيهات الأذان، العد التنازلي للإقامة، تذكيرات الأذكار، وتنبيهات الشروق. الإضافة نظيفة، سريعة، وقابلة للتخصيص بالكامل.  
 
-🕋 Accurate Prayer Times based on your location
+---
 
-⏳ Countdown to next prayer or Iqama
+## ✨ المميزات
 
-🔔 Pre-Adhan Alerts (customizable)
+- 🕋 **مواقيت الصلاة دقيقة** بناءً على موقعك  
+- ⏳ **عد تنازلي** للصلاة القادمة أو الإقامة  
+- 🔔 **تنبيهات قبل الأذان** قابلة للتعديل  
+- 📿 **تنبيهات الأذكار الاختيارية** مع تحديد الفاصل الزمني  
+- 🌅 **تنبيهات الشروق** (اختياري)  
+- 🕌 **التعرف التلقائي على صلاة الجمعة**  
+- 🌍 **خيارات تحديد الموقع:**
+  - البحث عن المدن مع **اقتراحات مباشرة**  
+  - البحث اليدوي مع **تأكيد اختيار المدينة**  
+  - تحديد الموقع تلقائياً باستخدام **GPS**  
+- 🌐 **دعم لغتين:** العربية والإنجليزية  
+- 🧼 **كود نظيف وخفيف** بدون استخدام أي إطار عمل  
 
-📿 Optional Adhkar Alerts with configurable interval
+> **ملاحظة:** يتم **تأجيل تنبيهات الأذكار** تلقائياً خلال:
+> - العد التنازلي قبل الأذان  
+> - وقت الأذان  
+> - الفترة بين الأذان والإقامة  
+> - أثناء الإقامة  
+> لضمان عدم مقاطعة الصلاة.
 
-🌅 Sunrise Notification (optional)
+---
 
-🕌 Automatic Friday Prayer Detection
+## ⚙️ الإعدادات
 
-🌍 City Selection Options:
+يمكن للمستخدم تخصيص:
 
-Search with suggestions
+- 🔊 تفعيل/تعطيل **صوت الأذان**  
+- 🌅 تفعيل/تعطيل **تنبيه الشروق**  
+- ⏱️ تحديد **مدة التنبيه قبل الأذان**  
+- 🕌 تحديد **مدة الإقامة**  
+- 📿 تفعيل/تعطيل **تنبيهات الأذكار** وتحديد فاصلها الزمني  
+- 🖥️ وضع **ملء الشاشة للإقامة**  
+- 🌐 تغيير اللغة (العربية / الإنجليزية)  
 
-Manual search with confirmation
+---
 
-Auto-detect using GPS
+## 🛠️ التقنيات المستخدمة
 
-🌐 Bilingual Support: Arabic & English
+- JavaScript (ES Modules)  
+- HTML / CSS  
+- WebExtensions API  
+- OpenStreetMap API لتحديد المدن  
+- Aladhan API لحساب مواقيت الصلاة  
 
-🧼 Clean code with no frameworks
+---
 
-⚙️ Settings
+## 🚀 كيفية التثبيت
 
-🔊 Enable / disable Adhan sound
+1. **تحميل المشروع** على جهازك.  
+2. فتح متصفح يدعم **WebExtensions** (Chrome / Edge / Firefox).  
+3. الذهاب إلى صفحة **الإضافات** وتمكين وضع **المطور**.  
+4. اختيار **تحميل الإضافة بدون ضغط (Load unpacked)** وتحديد مجلد المشروع.  
+5. ستظهر الإضافة في شريط الأدوات ويمكنك البدء باستخدامها.
 
-🌅 Enable / disable Sunrise alert
-
-🕒 Set pre-Adhan notification time
-
-🕌 Set Iqama duration
-
-📿 Enable / disable Adhkar alerts and set interval
-
-🖥️ Fullscreen mode during Iqama
-
-🌐 Change language
-
-Adhkar will not be displayed:
-
-During pre-Adhan countdown
-
-During Adhan
-
-Between Adhan and Iqama
-
-During Iqama
-This ensures no interruption during prayer.
-
-🛠️ Technologies Used
-
-JavaScript (ES Modules)
-
-HTML + CSS
-
-WebExtensions API
-
-OpenStreetMap (Nominatim) for location search
-
-AlAdhan API for prayer times
-
-✅ No React or heavy frameworks for fast performance
-
-📂 Project Structure
-.
-├── popup/
-│   ├── popup.html
-│   ├── popup.css
-│   └── popup.js
-│
-├── background/
-│   └── background.js
-│
-├── utils/
-│   ├── time-utils.js
-│   ├── storage.js
-│   └── translations.js
-│
-├── assets/
-│   └── sounds/
-│
-├── manifest.json
-└── README.md
-
-🚀 Installation (Developer)
-
-Clone the repository:
-
-git clone https://github.com/yourusername/prayer-focus.git
-
-
-Open browser extensions page (chrome://extensions or edge://extensions)
-
-Enable Developer Mode
-
-Click Load unpacked and select the project folder
-
-📝 Contributing
-
-Contributions are welcome! You can help by:
-
-Improving UI/UX
-
-Adding more languages
-
-Enhancing calculation accuracy
-
-Supporting additional calendars
-
-Please open an issue or submit a pull request.
-
-📄 License
-
-MIT License © 2026
-You are free to use for personal or educational purposes. Respect API usage terms.
-
-🙏 Acknowledgements
-
-وَذَكِّرْ فَإِنَّ الذِّكْرَىٰ تَنفَعُ الْمُؤْمِنِينَ
-May this project benefit the users and Allah guide us all.
+---
