@@ -66,6 +66,11 @@ export const TRANSLATIONS = {
 
         // الأذكار
         alertAdhkarTitle: "وقفة مع الذكر",
+
+        // === أزرار التنبيه ===
+        stateAdhan: "يُرفع الآن أذان",
+        stateIqama: "تُقام الآن صلاة",
+        stateWaiting: "متبقي على الإقامة",
         
         // === أزرار التحكم في التنبيه ===
         btnStopAudio: "إيقاف الصوت",
@@ -135,6 +140,11 @@ export const TRANSLATIONS = {
 
         // Adhkar
         alertAdhkarTitle: "Remembrance (Dhikr)",
+
+        // === Notification Buttons ===
+        stateAdhan: "Now Adhan for",
+        stateIqama: "Now Iqama for",
+        stateWaiting: "Time until Iqama",
         
         // === Notification Buttons ===
         btnStopAudio: "Stop Audio",

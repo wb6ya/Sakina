@@ -88,6 +88,9 @@ function isInPrayerCriticalWindow(appSettings, nextPrayerObj) {
    ========================================== */
 async function scheduleNextPrayer(isStartupCheck = false) {
     try {
+        await chrome.alarms.clearAll();
+        chrome.alarms.create(ALARM_NAMES.SCHEDULER, { periodInMinutes: 60 });
+
         const times = await chrome.storage.local.get(STORAGE_KEYS.PRAYER_TIMES);
         const location = await chrome.storage.local.get(STORAGE_KEYS.USER_LOCATION);
         const settings = await chrome.storage.local.get(STORAGE_KEYS.SETTINGS);
@@ -100,60 +103,67 @@ async function scheduleNextPrayer(isStartupCheck = false) {
         const enableSunrise = appSettings.enableSunrise === true;
         const preMinutes = Number(appSettings.preAdhanMinutes || 15);
         const iqamaMinutes = Number(appSettings.iqamaMinutes || 25);
-
-        // الحصول على الصلاة القادمة
-        const nextPrayerObj = getNextPrayer(timings, timezone, enableSunrise);
-        if (!nextPrayerObj) return;
-
-        const nextPrayerTime = nextPrayerObj.time.getTime();
         const now = Date.now();
-        const preTime = nextPrayerTime - (preMinutes * 60 * 1000);
-        const iqamaTime = nextPrayerTime + (iqamaMinutes * 60 * 1000);
         const isFriday = new Date().getDay() === 5;
-        const prayerKey = (nextPrayerObj.key === 'Dhuhr' && isFriday) ? 'Jumuah' : nextPrayerObj.key;
 
-        // --- المعالجة الذكية عند بدء التشغيل (Smart Startup Logic) ---
-        if (isStartupCheck) {
-            // 1. هل فات الأذان منذ وقت قصير؟ (مثلاً خلال دقيقتين) -> نعرض الأذان
-            // إذا فات بأكثر من 5 دقائق -> نعتبره فات ولا نعرض شيء
-            const timeSinceAdhan = now - nextPrayerTime; 
-            if (timeSinceAdhan > 0 && timeSinceAdhan < 5 * 60 * 1000) {
-                 triggerAdhanAlert(appSettings, timings, nextPrayerObj, isFriday);
-                 return; // انتهى، لا تجدول شيء آخر لهذه الصلاة
-            }
-
-            // 2. هل نحن الآن في فترة "قبل الصلاة"؟
-            if (now >= preTime && now < nextPrayerTime) {
-                showNotification(
-                    'alertPreTitle', 
-                    'alertPreMsg', 
-                    "PRE", 
-                    { mode: 'COUNTDOWN', targetTime: nextPrayerTime }, // الهدف هو وقت الأذان الثابت
-                    null, 
-                    prayerKey
-                );
-                // نجدول الأذان أيضاً
-                chrome.alarms.create(ALARM_NAMES.NEXT_PRAYER, { when: nextPrayerTime });
-                return;
-            }
-
-            // 3. هل نحن في وقت الإقامة؟ (بعد الأذان وقبل الإقامة)
-            if (now > nextPrayerTime && now < iqamaTime) {
-                // نجدول الإقامة فقط إذا بقي عليها وقت
+        // ---------------------------------------------------------
+        // 1. البحث عن "الصلاة النشطة حالياً" (لإصلاح مشكلة الإقامة)
+        // ---------------------------------------------------------
+        let activePrayerIqama = null;
+        for (const key of ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha']) {
+            const pTime = parsePrayerTime(timings[key], new Date()).getTime();
+            const iqamaTime = pTime + (iqamaMinutes * 60 * 1000);
+            
+            // هل نحن في الفترة بين الأذان والإقامة لهذه الصلاة؟
+            if (now >= pTime && now < iqamaTime) {
+                // نعم! هذه الصلاة هي النشطة، نجدول إقامتها فوراً
                 chrome.alarms.create(ALARM_NAMES.IQAMA, { when: iqamaTime });
-                return;
+                activePrayerIqama = { key, iqamaTime };
+                console.log(`✅ تم اكتشاف فترة انتظار إقامة لـ ${key}، تمت الجدولة.`);
+                break; 
             }
         }
 
-        // --- الجدولة الطبيعية (للمستقبل) ---
-        // 1. جدولة الأذان
-        if (nextPrayerTime > now) {
-            chrome.alarms.create(ALARM_NAMES.NEXT_PRAYER, { when: nextPrayerTime });
-        }
+        // ---------------------------------------------------------
+        // 2. جدولة الصلاة القادمة (المستقبل)
+        // ---------------------------------------------------------
+        const nextPrayerObj = getNextPrayer(timings, timezone, enableSunrise);
+        
+        // إذا وجدنا صلاة قادمة
+        if (nextPrayerObj) {
+            const nextPrayerTime = nextPrayerObj.time.getTime();
+            const preTime = nextPrayerTime - (preMinutes * 60 * 1000);
 
-        // 2. جدولة التنبيه المسبق
-        if (preTime > now) {
-            chrome.alarms.create(ALARM_NAMES.PRE_PRAYER, { when: preTime });
+            // أ) جدولة الأذان القادم
+            if (nextPrayerTime > now) {
+                chrome.alarms.create(ALARM_NAMES.NEXT_PRAYER, { when: nextPrayerTime });
+            }
+
+            // ب) جدولة التنبيه المسبق
+            if (preTime > now) {
+                chrome.alarms.create(ALARM_NAMES.PRE_PRAYER, { when: preTime });
+            }
+            
+            // ---------------------------------------------------------
+            // 3. منطق بدء التشغيل (Notifications Logic) - من كودك
+            // ---------------------------------------------------------
+            if (isStartupCheck) {
+                const prayerKey = (nextPrayerObj.key === 'Dhuhr' && isFriday) ? 'Jumuah' : nextPrayerObj.key;
+
+                // حالة: هل فات الأذان منذ لحظات؟ (أقل من 5 دقائق)
+                const timeSinceAdhan = now - nextPrayerTime; 
+                if (timeSinceAdhan > 0 && timeSinceAdhan < 5 * 60 * 1000) {
+                     triggerAdhanAlert(appSettings, timings, nextPrayerObj, isFriday);
+                }
+
+                // حالة: هل نحن في فترة "قبل الصلاة"؟
+                else if (now >= preTime && now < nextPrayerTime) {
+                    showNotification(
+                        'alertPreTitle', 'alertPreMsg', "PRE", 
+                        { mode: 'COUNTDOWN', targetTime: nextPrayerTime }, null, prayerKey
+                    );
+                }
+            }
         }
 
         // 3. جدولة الأذكار
@@ -177,14 +187,18 @@ async function manageAdhkarAlarm(appSettings) {
 }
 
 /* ==========================================
-   5. تنفيذ المنبهات (Alarms Listener)
+   5. تنفيذ المنبهات (تم التحديث: منطق فحص ذكي)
    ========================================== */
 chrome.alarms.onAlarm.addListener(async (alarm) => {
+    // 1. المجدول الدوري لتحديث المواقيت
     if (alarm.name === ALARM_NAMES.SCHEDULER) {
         scheduleNextPrayer();
         return;
     }
 
+    const now = Date.now();
+    
+    // جلب البيانات الضرورية
     const settingsData = await chrome.storage.local.get(STORAGE_KEYS.SETTINGS);
     const timesData = await chrome.storage.local.get(STORAGE_KEYS.PRAYER_TIMES);
     const locationData = await chrome.storage.local.get(STORAGE_KEYS.USER_LOCATION);
@@ -193,71 +207,101 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
     const timings = timesData.prayer_times;
     const timezone = locationData.user_location?.timezone;
     const isFriday = new Date().getDay() === 5;
+
+    // دالة مساعدة: العثور على الصلاة التي وقتها "الآن" (بتسامح 2 دقيقة)
+    const findActivePrayer = () => {
+        if (!timings) return null;
+        for (const key of ['Fajr', 'Sunrise', 'Dhuhr', 'Asr', 'Maghrib', 'Isha']) {
+            const time = parsePrayerTime(timings[key], new Date());
+            const diff = Math.abs(now - time.getTime());
+            if (diff < 2 * 60 * 1000) { // سماحية دقيقتين
+                return { key, time };
+            }
+        }
+        return null;
+    };
+
     const nextPrayerObj = timings ? getNextPrayer(timings, timezone, appSettings.enableSunrise) : null;
-    
-    // --- منبه الأذكار ---
-    if (alarm.name === ALARM_NAMES.ADHKAR) {
+
+    // --- 🔊 1. منبه الأذان / الشروق ---
+    if (alarm.name === ALARM_NAMES.NEXT_PRAYER) {
+        // نحاول العثور على الصلاة الحالية أولاً
+        let targetPrayer = findActivePrayer();
+        
+        // إذا لم نجدها، نستخدم nextPrayerObj كاحتياط إذا كان قريباً جداً
+        if (!targetPrayer && nextPrayerObj) {
+            const diff = Math.abs(nextPrayerObj.time.getTime() - now);
+            if (diff < 60000) targetPrayer = nextPrayerObj;
+        }
+
+        if (targetPrayer) {
+            triggerAdhanAlert(appSettings, timings, targetPrayer, isFriday);
+        } else {
+            console.log("⚠️ تنبيه أذان رن، ولكن لا توجد صلاة مطابقة للوقت الحالي. إعادة الجدولة.");
+            scheduleNextPrayer(); 
+        }
+    }
+
+    // --- ⏳ 2. منبه قبل الأذان ---
+    else if (alarm.name === ALARM_NAMES.PRE_PRAYER) {
+        if (!nextPrayerObj) return;
+
+        const preMinutes = Number(appSettings.preAdhanMinutes || 15);
+        // نحسب الوقت المثالي للتنبيه بناءً على الصلاة القادمة
+        const idealAlertTime = nextPrayerObj.time.getTime() - (preMinutes * 60 * 1000);
+
+        // نقطة تفتيش: هل الوقت الآن قريب من وقت التنبيه؟ (سماحية 3 دقائق)
+        if (Math.abs(now - idealAlertTime) < 3 * 60 * 1000) {
+            const prayerKey = (nextPrayerObj.key === 'Dhuhr' && isFriday) ? 'Jumuah' : nextPrayerObj.key;
+            showNotification(
+                'alertPreTitle', 'alertPreMsg', "PRE", 
+                { mode: 'COUNTDOWN', targetTime: nextPrayerObj.time.getTime() }, null, prayerKey
+            );
+        } else {
+            console.log("⚠️ تنبيه 'قبل الصلاة' تم تجاهله لعدم تطابق الوقت.");
+            // إذا كنا ما زلنا قبل الوقت، أعد الجدولة للتصحيح
+            if (now < idealAlertTime) {
+                chrome.alarms.create(ALARM_NAMES.PRE_PRAYER, { when: idealAlertTime });
+            }
+        }
+    } 
+
+    // --- 🕋 3. منبه الإقامة ---
+    else if (alarm.name === ALARM_NAMES.IQAMA) {
+        const delay = Math.abs(now - alarm.scheduledTime);
+        // سماحية 3 دقائق للإقامة
+        if (delay < 3 * 60 * 1000) { 
+            const quote = getRandomQuote();
+            const shouldPlaySound = appSettings.adhanSound !== false;
+            showNotification('alertIqamaTitle', quote.text, "IQAMA", null, quote);
+            if (shouldPlaySound) playAudio('IQAMA', 1.0);
+        }
+    }
+
+    // --- 📿 4. الأذكار ---
+    else if (alarm.name === ALARM_NAMES.ADHKAR) {
         if (isInPrayerCriticalWindow(appSettings, nextPrayerObj)) return;
         const quote = getRandomQuote();
         const shouldPlaySound = appSettings.adhanSound !== false;
         showNotification('alertAdhkarTitle', quote.text, "NORMAL", null, quote);
         if (shouldPlaySound) playAudio('ADHKAR', 0.5);
-        return;
-    }
-
-    // --- منبه قبل الأذان ---
-    if (alarm.name === ALARM_NAMES.PRE_PRAYER) {
-        // حماية: إذا تأخر المنبه لأي سبب وكان الأذان قد حان، لا تعرضه
-        if (nextPrayerObj && Date.now() > nextPrayerObj.time.getTime()) return;
-
-        const prayerKey = (nextPrayerObj?.key === 'Dhuhr' && isFriday) ? 'Jumuah' : nextPrayerObj?.key;
-        
-        showNotification(
-            'alertPreTitle', 
-            'alertPreMsg', 
-            "PRE", 
-            { mode: 'COUNTDOWN', targetTime: nextPrayerObj.time.getTime() }, 
-            null, 
-            prayerKey
-        );
-    } 
-
-    // --- منبه الأذان / الشروق ---
-    else if (alarm.name === ALARM_NAMES.NEXT_PRAYER) {
-        // التأكد من أن الوقت لم يمر عليه فترة طويلة (مثلاً الجهاز كان مغلقاً)
-        const diff = Date.now() - alarm.scheduledTime;
-        if (diff > 5 * 60 * 1000) {
-            scheduleNextPrayer();
-            return;
-        }
-        triggerAdhanAlert(appSettings, timings, nextPrayerObj, isFriday);
-    }
-
-    // --- منبه الإقامة ---
-    else if (alarm.name === ALARM_NAMES.IQAMA) {
-        const diff = Date.now() - alarm.scheduledTime;
-        if (diff > 10 * 60 * 1000) return; 
-
-        const quote = getRandomQuote();
-        const shouldPlaySound = appSettings.adhanSound !== false;
-        showNotification('alertIqamaTitle', quote.text, "IQAMA", null, quote);
-        if (shouldPlaySound) playAudio('IQAMA', 1.0);
     }
 });
 
-// دالة مساعدة لتشغيل تنبيه الأذان
-function triggerAdhanAlert(appSettings, timings, nextPrayerObj, isFriday) {
-    let isSunrise = false;
-    // التحقق من الشروق بشكل مبسط
-    if (nextPrayerObj && nextPrayerObj.key === 'Sunrise') isSunrise = true;
 
+// دالة مساعدة لتشغيل تنبيه الأذان وجدولة الإقامة
+function triggerAdhanAlert(appSettings, timings, prayerObj, isFriday) {
+    let isSunrise = (prayerObj.key === 'Sunrise');
+    
     const titleKey = isSunrise ? 'alertSunriseTitle' : 'alertAdhanTitle';
     const msgKey = isSunrise ? 'alertSunriseMsg' : 'alertAdhanMsg';
-    const prayerKey = (nextPrayerObj?.key === 'Dhuhr' && isFriday) ? 'Jumuah' : nextPrayerObj?.key;
+    const prayerKey = (prayerObj.key === 'Dhuhr' && isFriday) ? 'Jumuah' : prayerObj.key;
     const shouldPlaySound = appSettings.adhanSound !== false;
 
+    // عرض التوست
     showNotification(titleKey, msgKey, "ADHAN", { mode: 'COUNTUP', startTime: Date.now() }, null, isSunrise ? 'Sunrise' : prayerKey);
     
+    // تشغيل الصوت
     if (shouldPlaySound) {
         if (isSunrise) {
             if (appSettings.enableSunrise) playAudio('SUNRISE', 0.7);
@@ -266,16 +310,15 @@ function triggerAdhanAlert(appSettings, timings, nextPrayerObj, isFriday) {
         }
     }
 
+    // جدولة الإقامة بعد الأذان
     if (!isSunrise) {
-        // حماية: لا تجدول إقامة إذا لم يكن لدينا كائن صلاة حقيقي
-        if (nextPrayerObj) {
-            const iqamaMinutes = Number(appSettings.iqamaMinutes || 25);
-            const adhanTime = nextPrayerObj.time.getTime();
-            chrome.alarms.create(ALARM_NAMES.IQAMA, { when: adhanTime + (iqamaMinutes * 60 * 1000) });
-        }
+        const iqamaMinutes = Number(appSettings.iqamaMinutes || 25);
+        // نستخدم وقت الصلاة الأصلي لحساب الإقامة بدقة، وليس الوقت الحالي
+        const iqamaTime = prayerObj.time.getTime() + (iqamaMinutes * 60 * 1000);
+        chrome.alarms.create(ALARM_NAMES.IQAMA, { when: iqamaTime });
     }
     
-    // جدولة الصلاة القادمة بعد 5 ثواني لضمان تحديث التوقيت
+    // جدولة الصلاة القادمة بعد قليل
     setTimeout(() => scheduleNextPrayer(), 5000); 
 }
 
