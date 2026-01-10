@@ -181,9 +181,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     function startTimer(targetTime) {
         if (timerInterval) clearInterval(timerInterval);
         
+        // تحديث فوري لمرة واحدة قبل الانتظار ثانية
+        update(); 
+
         function update() {
             const now = Date.now();
             let diff = targetTime - now;
+            
+            // حماية: إذا كان الوقت المستهدف غير صالح
+            if (isNaN(diff)) {
+                if(mainUI.countdown) mainUI.countdown.textContent = "--:--";
+                return;
+            }
+
             if (diff < 0) diff = 0;
             
             const h = Math.floor(diff / 3600000);
@@ -196,7 +206,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                               
             if (mainUI.countdown) mainUI.countdown.textContent = formatted;
         }
-        update();
+        
         timerInterval = setInterval(update, 1000);
     }
 
@@ -315,33 +325,84 @@ document.addEventListener('DOMContentLoaded', async () => {
     async function fetchCitySuggestions(query) {
         try {
             const lang = document.body.lang || 'ar';
-            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1&accept-language=${lang}`;
-            const response = await fetch(url);
-            displaySuggestions(await response.json());
-        } catch (err) { console.error(err); }
+            // إضافة email للامتثال لسياسة Nominatim (استبدل الايميل بايميلك الحقيقي إذا أردت)
+            const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1&accept-language=${lang}&email=sakina_app_user@example.com`;
+            
+            const response = await fetch(url, {
+                headers: {
+                    // مهم جداً: تعريف التطبيق لتجنب الحظر
+                    'User-Agent': 'SakinaApp/1.0'
+                }
+            });
+
+            // 1. التحقق من حالة الخادم قبل قراءة البيانات
+            if (!response.ok) {
+                if (response.status === 503 || response.status === 429) {
+                    console.warn("⚠️ الخادم مشغول، الرجاء الانتظار قليلاً.");
+                    // اختياري: إظهار توست للمستخدم
+                }
+                throw new Error(`Server status: ${response.status}`);
+            }
+
+            // 2. قراءة النص أولاً للتأكد أنه ليس HTML
+            const textData = await response.text();
+            
+            try {
+                const jsonData = JSON.parse(textData);
+                displaySuggestions(jsonData);
+            } catch (parseError) {
+                console.error("⚠️ الخادم أرسل بيانات غير صالحة (HTML بدلاً من JSON):", textData.substring(0, 50));
+            }
+
+        } catch (err) { 
+            console.error("خطأ في البحث:", err); 
+            // إخفاء القائمة في حال الخطأ
+            if (search.suggestionsList) search.suggestionsList.style.display = 'none';
+        }
     }
 
     function displaySuggestions(results) {
         if (!search.suggestionsList) return;
         search.suggestionsList.innerHTML = '';
-        if (!results || results.length === 0) { search.suggestionsList.style.display = 'none'; return; }
+        
+        if (!results || results.length === 0) { 
+            search.suggestionsList.style.display = 'none'; 
+            return; 
+        }
         
         results.forEach(item => {
             const li = document.createElement('li');
             li.className = 'suggestion-item';
-            li.textContent = item.display_name.split(',').slice(0, 2).join(',');
+            
+            // --- 👇 تحسين طريقة عرض الاسم ---
+            // نستخرج اسم المدينة والدولة من التفاصيل بدلاً من النص الطويل
+            const addr = item.address || {};
+            const city = addr.city || addr.town || addr.village || addr.county || addr.state || item.name;
+            const country = addr.country || "";
+            
+            // نركب الاسم ليظهر بشكل: "الرياض، السعودية"
+            const cleanName = country ? `${city}، ${country}` : city;
+            
+            li.innerHTML = `
+                <span class="loc-icon">📍</span>
+                <span class="loc-text">${cleanName}</span>
+            `;
+            // -------------------------------
+
             li.onclick = () => {
-                if(search.cityInput) search.cityInput.value = li.textContent;
+                if(search.cityInput) search.cityInput.value = cleanName; // نضع الاسم النظيف في الحقل
                 search.suggestionsList.style.display = 'none';
-                const dName = item.display_name.split(',')[0];
-                showConfirm(modal, 'تأكيد', `هل تريد اختيار: ${dName}؟`).then(confirmed => {
-                    if(confirmed) handleLocationSelection(item.lat, item.lon, dName);
+                
+                // نطلب التأكيد
+                showConfirm(modal, 'تأكيد الموقع', `هل تريد اعتماد: <strong>${cleanName}</strong>؟`).then(confirmed => {
+                    if(confirmed) handleLocationSelection(item.lat, item.lon, cleanName);
                 });
             };
             search.suggestionsList.appendChild(li);
         });
+        
         search.suggestionsList.style.display = 'block';
-        search.suggestionsList.classList.remove('hidden');
+        search.suggestionsList.classList.remove("hidden");
     }
 
     /* =========================================
