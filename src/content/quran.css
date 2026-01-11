@@ -1,0 +1,256 @@
+/* =========================================
+   Quran Inject CSS – Premium Dark Mushaf
+   ========================================= */
+
+:root {
+    --quran-gold: #d6b25e;
+    --quran-gold-soft: rgba(214,178,94,0.35);
+    --quran-bg-dark: #0f0f0f;
+    --quran-bg-panel: #1a1a1a;
+    --quran-bg-paper: #202020;
+    --quran-text: #f1f1f1;
+    --quran-muted: #9ca3af;
+    --quran-accent: #16c784;
+}
+
+/* ================= Backdrop ================= */
+#quran-overlay-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.94);
+    backdrop-filter: blur(12px);
+    z-index: 2147483646;
+    display: none;
+    opacity: 0;
+    transition: opacity .4s ease;
+}
+#quran-overlay-backdrop.active {
+    display: block;
+    opacity: 1;
+}
+
+/* ================= Modal ================= */
+#quran-main-modal {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(.96);
+    width: 95%;
+    max-width: 920px;
+    height: 92vh;
+    background: linear-gradient(180deg, #141414, #0d0d0d);
+    border-radius: 18px;
+    border: 1px solid var(--quran-gold-soft);
+    box-shadow:
+        0 0 0 1px rgba(214,178,94,.15),
+        0 40px 80px rgba(0,0,0,.85),
+        inset 0 0 120px rgba(0,0,0,.6);
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    font-family: 'Amiri', serif;
+    direction: rtl;
+    z-index: 2147483647;
+    transition: all .45s cubic-bezier(.34,1.56,.64,1);
+}
+#quran-main-modal.active {
+    display: flex;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+/* ================= Header ================= */
+.quran-modal-header {
+    background: linear-gradient(180deg,#151515,#101010);
+    padding: 16px 26px;
+    border-bottom: 1px solid rgba(214,178,94,.25);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Surah Select */
+.quran-surah-select {
+    appearance: none;
+    background-color: #1a1a1a;
+    color: var(--quran-text);
+    border: 1px solid rgba(255,255,255,.2);
+    border-radius: 6px;
+    padding: 8px 36px 8px 14px;
+    font-size: 15px;
+    font-family: 'Amiri', serif;
+    cursor: pointer;
+
+    background-image:
+        linear-gradient(45deg, transparent 50%, #c9a43c 50%),
+        linear-gradient(135deg, #c9a43c 50%, transparent 50%);
+    background-position:
+        calc(100% - 18px) 55%,
+        calc(100% - 12px) 55%;
+    background-size: 6px 6px;
+    background-repeat: no-repeat;
+}
+
+
+.quran-surah-select:hover {
+    border-color: var(--quran-gold);
+    background: #242424;
+}
+
+.quran-surah-select option {
+    background: #121212;
+    color: #f1f1f1;
+    padding: 10px;
+    font-size: 15px;
+}
+
+
+/* Close Button */
+.quran-close-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #1b1b1b;
+    border: 1px solid rgba(255,255,255,.15);
+    color: #d1d5db;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.6);
+    transition: background .2s ease, color .2s ease;
+}
+
+.quran-close-btn:hover {
+    background: #2a2a2a;
+    color: #fff;
+}
+
+
+
+/* ================= Body ================= */
+.quran-modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 50px 24px;
+    background:
+        radial-gradient(circle at top,
+            rgba(214,178,94,.06),
+            transparent 60%),
+        var(--quran-bg-panel);
+}
+
+/* ================= Text Container ================= */
+.quran-text-container {
+    max-width: 760px;
+    margin: auto;
+    padding: 48px 42px;
+    background:
+        linear-gradient(180deg,
+            rgba(255,255,255,.03),
+            rgba(0,0,0,.25)),
+        var(--quran-bg-paper);
+    border-radius: 14px;
+    border: 1px solid rgba(214,178,94,.2);
+    box-shadow:
+        0 25px 50px rgba(0,0,0,.5),
+        inset 0 0 40px rgba(0,0,0,.35);
+
+    font-size: 29px;
+    line-height: 2.9;
+    color: var(--quran-text);
+    text-align: center;
+}
+
+/* ================= Basmala ================= */
+.quran-basmala {
+    font-size: 36px;
+    color: var(--quran-gold);
+    margin-bottom: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+}
+.quran-basmala::before,
+.quran-basmala::after {
+    content: "";
+    width: 70px;
+    height: 1px;
+    background: linear-gradient(
+        to right,
+        transparent,
+        var(--quran-gold),
+        transparent
+    );
+    opacity: .7;
+}
+
+/* ================= Ayah ================= */
+.quran-ayah-text {
+    display: inline;
+    transition: color .25s;
+}
+.quran-ayah-text:hover {
+    color: #fff;
+}
+
+/* Ayah Number */
+.quran-ayah-end {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 34px;
+    height: 34px;
+    margin: 0 6px;
+
+    border-radius: 50%;
+    background-color: var(--quran-gold);
+    color: #111;
+
+    font-size: 14px;
+    font-family: 'Amiri', serif;
+    font-weight: 700;
+
+    border: 1px solid #c7a74a;
+    box-shadow: none;
+
+}
+
+
+/* ================= Scrollbar ================= */
+.quran-modal-body::-webkit-scrollbar {
+    width: 8px;
+}
+.quran-modal-body::-webkit-scrollbar-track {
+    background: #0f0f0f;
+}
+.quran-modal-body::-webkit-scrollbar-thumb {
+    background: #3a3a3a;
+    border-radius: 4px;
+}
+.quran-modal-body::-webkit-scrollbar-thumb:hover {
+    background: var(--quran-gold);
+}
+
+/* ================= Loading ================= */
+.quran-loading {
+    text-align: center;
+    margin-top: 60px;
+    color: var(--quran-gold);
+    font-size: 18px;
+}
+.quran-loading-spinner {
+    border: 4px solid rgba(214,178,94,.2);
+    border-top: 4px solid var(--quran-gold);
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    margin: 0 auto 16px;
+    animation: quran-spin 1s linear infinite;
+}

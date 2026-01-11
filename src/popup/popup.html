@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sakina | سكينة</title>
     <link rel="stylesheet" href="popup.css">
+    <link rel="stylesheet" href="../content/quran.css">
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&family=Amiri:wght@700&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -35,34 +37,49 @@
         </div>
     </div>
 
-    <div id="main-view" class="view hidden">
-        <header class="main-header">
-            <div style="display: flex; flex-direction: column; gap: 4px;">
-                <div class="location-badge"><span id="location-name">...</span> 📍</div>
-                <div id="current-date" style="font-size: 12px; color: #888; margin-right: 5px;">...</div>
-            </div>
-            <button id="btn-settings" class="icon-btn" title="الإعدادات">⚙️</button>
-        </header>
-
-        <div class="countdown-card" id="dynamic-card">
-            <div class="atmosphere-container">
-                <div class="stars-layer"></div>
-                <div class="clouds-layer">
-                    <div class="cloud cloud-1"></div>
-                    <div class="cloud cloud-2"></div>
+<div id="main-view" class="view hidden">
+        <header class="compact-header">
+            <div class="header-top">
+                <button id="btn-settings" class="settings-btn" title="الإعدادات">⚙️</button>
+                <div class="location-badge" title="الموقع الحالي">
+                    <span id="location-name">...</span> 📍
                 </div>
             </div>
             
+            <div class="header-content">
+                <div id="digital-clock" class="time-section">00:00</div>
+                
+                <div class="date-container">
+                    <span id="hijri-date" class="date-text hijri">-- رمضان</span>
+                    <span class="date-divider">|</span>
+                    <span id="current-date" class="date-text greg">-- يناير</span>
+                </div>
+            </div>
+        </header>
+
+    <div class="main-content-wrapper">
+        
+        <div id="countdown-card" class="countdown-card is-night">
+            <div class="atmosphere-container">
+                <div class="stars-layer"></div>
+                <div class="clouds-layer"><div class="cloud cloud-1"></div></div>
+            </div>
+            
             <div class="card-content">
-                <p class="status-text" id="date-display">الوقت المتبقي للصلاة القادمة</p>
-                <div id="countdown">00:00:00</div>
-                <h2 id="next-prayer-name">...</h2>
+                <p class="status-text" id="date-display">الصلاة القادمة</p>
+                <div id="next-prayer-name">...</div>
+                <div id="countdown">--:--:--</div>
             </div>
         </div>
 
         <div class="prayers-list" id="prayers-list">
             </div>
+
+        <button id="btn-open-quran" class="quran-btn-compact">
+            📖 المصحف الشريف
+        </button>
     </div>
+</div>
 
     <div id="settings-view" class="view hidden">
         <div class="settings-header">
@@ -177,21 +194,20 @@
         </div>
     </div>
 
-    <div id="custom-modal" class="modal-overlay hidden">
-        <div class="modal-card">
-            <div class="modal-icon" id="modal-icon">?</div>
-            <h3 id="modal-title">عنوان</h3>
-            <p id="modal-message">رسالة</p>
-            
-            <div class="modal-actions" id="modal-actions-confirm">
-                <button id="btn-modal-yes" class="btn primary-btn">نعم، تأكيد</button>
-                <button id="btn-modal-no" class="btn secondary-btn">إلغاء</button>
+    <div id="custom-modal" class="modal-overlay" style="display: none;"> <div class="modal-card">
+                <span id="modal-icon" class="modal-icon">ℹ️</span>
+                <h3 id="modal-title">عنوان</h3>
+                <p id="modal-message">نص الرسالة...</p>
+                
+                <div id="modal-actions-confirm" class="modal-actions hidden">
+                    <button id="btn-modal-yes" class="modal-btn btn-yes">نعم</button>
+                    <button id="btn-modal-no" class="modal-btn btn-no">لا</button>
+                </div>
+                
+                <div id="modal-actions-alert" class="modal-actions hidden">
+                    <button id="btn-modal-ok" class="modal-btn btn-yes">موافق</button>
+                </div>
             </div>
-            
-            <div class="modal-actions hidden" id="modal-actions-alert">
-                <button id="btn-modal-ok" class="btn secondary-btn">موافق</button>
-            </div>
-        </div>
     </div>
 
     <script type="module" src="popup.js"></script>

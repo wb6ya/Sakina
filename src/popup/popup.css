@@ -1,18 +1,21 @@
 /* =========================================
    1. المتغيرات والخطوط (Variables & Fonts)
    ========================================= */
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&family=Segoe+UI:wght@400;600;700&display=swap');
 
 :root {
-    --bg-color: #121212;
-    --card-bg: #1e1e1e;
+    --bg-color: #0f0f0f;
+    --card-bg: #1a1a1a;
     --primary-color: #d4af37; /* ذهبي */
-    --accent-color: #2b4c6e;  /* أزرق داكن */
-    --sunrise-color: #f59e0b; /* برتقالي للشروق */
+    --accent-color: #2b4c6e;
+    --sunrise-color: #f59e0b;
     --text-main: #ffffff;
-    --text-muted: #aaaaaa;
+    --text-muted: #888888;
     --font-main: 'Tajawal', sans-serif;
+    --font-num: 'Segoe UI', sans-serif;
     --danger-color: #ff4757;
+    --input-bg: #222;
+    --border-color: #333;
 }
 
 /* =========================================
@@ -31,7 +34,7 @@ body {
 
 /* تخصيص شريط التمرير (Scrollbar) */
 ::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-thumb { background-color: #444; border-radius: 3px; }
+::-webkit-scrollbar-thumb { background-color: #444; border-radius: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 
 /* =========================================
@@ -40,7 +43,7 @@ body {
 .view {
     width: 100%;
     height: 100%;
-    padding: 20px;
+    padding: 0;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
@@ -85,7 +88,7 @@ body {
 .secondary-btn:hover { background: #252525; }
 
 /* زر الحدود الحمراء (Danger Outline) */
-.danger-outline-btn {
+.danger-outline-btn, .danger-btn-outline {
     background: transparent;
     border: 1px solid rgba(255, 71, 87, 0.5);
     color: var(--danger-color);
@@ -94,7 +97,7 @@ body {
     align-items: center;
     gap: 8px;
 }
-.danger-outline-btn:hover {
+.danger-outline-btn:hover, .danger-btn-outline:hover {
     background: rgba(255, 71, 87, 0.1);
     border-color: var(--danger-color);
     transform: translateY(-1px);
@@ -103,17 +106,23 @@ body {
 
 /* أزرار الأيقونات (Settings Icon) */
 .icon-btn {
-    background: none;
+    background: transparent;
     border: none;
-    font-size: 20px;
+    font-size: 18px;
     cursor: pointer;
-    color: var(--text-muted);
-    transition: 0.2s;
+    opacity: 0.7;
+    transition: 0.3s;
+    padding: 5px;
+    border-radius: 50%;
 }
-.icon-btn:hover { color: white; transform: rotate(45deg); }
+.icon-btn:hover {
+    opacity: 1;
+    background: rgba(255,255,255,0.1);
+    transform: rotate(45deg);
+}
 
 /* أزرار الإجراءات الصغيرة (Upload/Reset) */
-.icon-action-btn {
+.icon-action-btn, .reset-sound-btn {
     background: #2a2a2a;
     border: 1px solid #444;
     color: #ddd;
@@ -127,12 +136,12 @@ body {
     font-size: 16px;
     transition: all 0.2s;
 }
-.icon-action-btn:hover {
+.icon-action-btn:hover, .reset-sound-btn:hover {
     background: var(--primary-color);
     color: #000;
     border-color: var(--primary-color);
 }
-.icon-action-btn.danger:hover {
+.icon-action-btn.danger:hover, .reset-sound-btn:hover {
     background: var(--danger-color);
     color: white;
     border-color: var(--danger-color);
@@ -160,10 +169,33 @@ body {
 }
 
 /* =========================================
-   6. شاشة الترحيب والبحث (Onboarding)
+   6. شاشة الترحيب والبحث (Onboarding View)
    ========================================= */
-.welcome-card { text-align: center; margin-top: 20px; }
-.logo-img { width: 80px; margin-bottom: 10px; }
+#onboarding-view {
+    padding: 20px;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+}
+
+.welcome-card { 
+    text-align: center; 
+    margin-top: -20px;
+}
+.logo-img { 
+    width: 70px; 
+    margin-bottom: 10px; 
+    opacity: 0.8; 
+}
+.welcome-card h2 { 
+    margin: 10px 0 5px; 
+    color: var(--primary-color); 
+}
+.welcome-card p { 
+    color: var(--text-muted); 
+    font-size: 13px; 
+    margin-bottom: 20px; 
+}
 
 .search-box {
     position: relative;
@@ -172,6 +204,7 @@ body {
     gap: 12px;
     margin-top: 15px;
     z-index: 10;
+    width: 100%;
 }
 
 .search-box input {
@@ -179,16 +212,34 @@ body {
     padding: 12px;
     box-sizing: border-box;
     border-radius: 8px;
-    border: 1px solid #333;
-    background: #222;
+    border: 1px solid var(--border-color);
+    background: var(--input-bg);
     color: white;
     text-align: center;
     font-family: inherit;
     outline: none;
+    transition: border 0.3s;
 }
-.search-box input:focus { border-color: var(--primary-color); }
+.search-box input:focus { 
+    border-color: var(--primary-color); 
+}
 
-.divider { margin: 15px 0; color: var(--text-muted); font-size: 12px; }
+.divider { 
+    margin: 15px 0; 
+    color: var(--text-muted); 
+    font-size: 12px; 
+    position: relative; 
+}
+.divider::before, .divider::after {
+    content: ""; 
+    position: absolute; 
+    top: 50%; 
+    width: 40%; 
+    height: 1px; 
+    background: #333;
+}
+.divider::before { right: 0; } 
+.divider::after { left: 0; }
 
 /* --- قائمة الاقتراحات الذكية (Autocomplete) --- */
 #suggestions-list {
@@ -204,7 +255,7 @@ body {
     margin: 2px 0 0 0;
     max-height: 200px;
     overflow-y: auto;
-    z-index: 9999; /* أعلى من كل شيء ما عدا المودال */
+    z-index: 9999;
     box-shadow: 0 10px 30px rgba(0,0,0,0.6);
 }
 
@@ -232,166 +283,601 @@ body {
 /* =========================================
    7. الشاشة الرئيسية (Main View)
    ========================================= */
-.main-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+
+.compact-header {
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 8px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 40px;
+    box-sizing: border-box;
+}
+
+/* الصف العلوي (الموقع والترس) */
+.header-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
 .location-badge {
-    font-size: 13px;
+    font-size: 11px;
+    color: #ccc;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(255,255,255,0.05);
+    padding: 2px 8px;
+    border-radius: 10px;
+    max-width: 140px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.settings-btn {
+    background: none; 
+    border: none; 
+    cursor: pointer; 
+    font-size: 14px;
+    padding: 0; 
+    opacity: 0.6; 
+    color: #fff;
+}
+.settings-btn:hover { 
+    opacity: 1; 
+    transform: rotate(45deg); 
+    transition: 0.3s; 
+}
+
+/* الصف الأوسط (معلومات الوقت) */
+.header-content {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end; /* محاذاة لليسار (لأن الاتجاه RTL) */
+    justify-content: center;
+}
+
+.time-section {
+    font-family: var(--font-num); /* خط الأرقام */
+    font-size: 11px;             /* تكبير الساعة قليلاً */
+    font-weight: 700;
+    color: var(--primary-color); /* لون ذهبي */
+    line-height: 1.2;
+    direction: ltr;              /* لضمان ظهور AM/PM في المكان الصحيح */
+}
+
+.date-container {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 2px;
+    font-size: 10px;         /* خط صغير وأنيق */
+    font-family: var(--font-main);
+}
+
+.date-text.hijri { color: #e2e8f0; font-weight: bold; } /* الهجري أبيض */
+.date-text.greg { color: #94a3b8; }                    /* الميلادي رمادي */
+.date-divider { color: #444; font-size: 8px; }
+
+.mini-date-display {
+    display: flex;
+    gap: 5px;
+    font-size: 9px;
     color: var(--text-muted);
-    background: #222;
-    padding: 5px 12px;
-    border-radius: 20px;
+    margin-top: 2px;
+}
+
+/* زر المصحف الصغير */
+.quran-btn-compact {
+    width: 100%;
+    margin-top: 10px;
+    background: #1f1f1f;
+    color: #888;
     border: 1px solid #333;
+    padding: 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: var(--font-main);
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: 0.2s;
+}
+.quran-btn-compact:hover { 
+    background: #059669; 
+    color: white; 
+    border-color: #059669; 
+}
+
+/* القسم الرئيسي للمحتوى */
+.main-content-wrapper {
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
 }
 
 /* بطاقة العد التنازلي */
 .countdown-card {
     position: relative;
     overflow: hidden;
-    padding: 20px;
+    padding: 20px 15px;
     border-radius: 16px;
     text-align: center;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
     margin-bottom: 15px;
     border: 1px solid rgba(255,255,255,0.1);
-    background: linear-gradient(135deg, #1a2a3a, #0d1117);
+    background: linear-gradient(135deg, #15202b, #0d1117);
     transition: background 1.5s ease-in-out;
+    flex-shrink: 0;
 }
-.countdown-card.is-day { background: linear-gradient(135deg, #5dade2, #2e86c1); }
-.countdown-card.is-night { background: linear-gradient(135deg, #1a2a3a, #0f172a); }
+.countdown-card.is-day { background: linear-gradient(135deg, #3b82f6, #1e40af); }
+.countdown-card.is-night { background: linear-gradient(135deg, #0f172a, #020617); border: 1px solid #1e293b; }
 
-.card-content { position: relative; z-index: 5; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
-.status-text { font-size: 12px; color: #a5d8ff; margin: 0; opacity: 0.8; }
-#countdown { font-size: 38px; margin: 5px 0; font-family: 'Segoe UI', monospace; letter-spacing: 1px; font-weight: 700; direction: ltr; }
-#next-prayer-name { font-size: 16px; color: var(--primary-color); margin: 0; font-weight: bold; }
+.card-content { 
+    position: relative; 
+    z-index: 5; 
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3); 
+}
+.status-text { 
+    font-size: 12px; 
+    color: rgba(255,255,255,0.8); 
+    margin: 0; 
+    font-weight: 300; 
+}
+#countdown { 
+    font-size: 42px; 
+    margin: 5px 0; 
+    font-family: var(--font-num); 
+    letter-spacing: 2px; 
+    font-weight: 700; 
+    color: #fff; 
+    text-shadow: 0 4px 10px rgba(0,0,0,0.3); 
+    direction: ltr; 
+}
+#next-prayer-name { 
+    font-size: 18px; 
+    color: var(--primary-color); 
+    margin: 0; 
+    font-weight: bold; 
+}
+.countdown-card.is-day #next-prayer-name { color: #fff; }
 
 /* الغلاف الجوي */
-.atmosphere-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
-.stars-layer {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    background-image: radial-gradient(1px 1px at 20px 30px, #fff, rgba(0,0,0,0)), radial-gradient(2px 2px at 250px 20px, #ffffff, rgba(0,0,0,0));
-    background-repeat: repeat; opacity: 0; transition: opacity 1.5s;
+.atmosphere-container { 
+    position: absolute; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%; 
+    z-index: 1; 
+    pointer-events: none; 
 }
-.countdown-card.is-night .stars-layer { opacity: 1; animation: twinkle 4s infinite alternate; }
+.stars-layer {
+    position: absolute; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%;
+    background-image: radial-gradient(1px 1px at 20px 30px, #fff, rgba(0,0,0,0)), 
+                      radial-gradient(2px 2px at 150px 80px, #ffffff, rgba(0,0,0,0));
+    background-repeat: repeat; 
+    opacity: 0; 
+    transition: opacity 1.5s;
+}
+.countdown-card.is-night .stars-layer { 
+    opacity: 0.6; 
+    animation: twinkle 3s infinite alternate; 
+}
 
-.clouds-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; transition: opacity 1.5s; filter: blur(8px); }
+.clouds-layer { 
+    position: absolute; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%; 
+    opacity: 0; 
+    transition: opacity 1.5s; 
+    filter: blur(8px); 
+}
 .countdown-card.is-day .clouds-layer { opacity: 1; }
-.cloud { position: absolute; background: radial-gradient(circle, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0) 70%); border-radius: 50%; }
-.cloud-1 { width: 200px; height: 150px; top: -40px; left: -50px; animation: floatCloud 25s infinite linear; }
-.cloud-2 { width: 250px; height: 180px; top: 60%; right: -80px; animation: floatCloud 30s infinite linear reverse; }
+.cloud { 
+    position: absolute; 
+    background: radial-gradient(circle, rgba(255,255,255,0.25) 0%, rgba(255,255,255,0) 70%); 
+    border-radius: 50%; 
+}
+.cloud-1 { 
+    width: 200px; 
+    height: 150px; 
+    top: -40px; 
+    left: -50px; 
+    animation: floatCloud 25s infinite linear; 
+}
+.cloud-2 { 
+    width: 250px; 
+    height: 180px; 
+    top: 60%; 
+    right: -80px; 
+    animation: floatCloud 30s infinite linear reverse; 
+}
 
 /* قائمة الصلوات */
-.prayers-list { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 5px; }
+.prayers-list { 
+    flex: 1; 
+    overflow-y: auto; 
+    display: flex; 
+    flex-direction: column; 
+    gap: 6px; 
+    padding: 0 2px; 
+}
 .prayer-item {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 12px 15px;
-    background: var(--card-bg);
-    border-radius: 10px;
-    border-right: 3px solid transparent;
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center;
+    padding: 10px 15px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 8px;
+    border-right: 2px solid transparent;
     transition: 0.2s;
 }
-.prayer-item:hover { background: #252525; }
-.prayer-item.active { background: #2a2510; border-right-color: var(--primary-color); }
-.prayer-item.active .prayer-name { color: var(--primary-color); font-weight: bold; }
-.prayer-item.active .prayer-time { color: white; font-weight: bold; }
-.prayer-item.prayer-sunrise .prayer-name { color: var(--sunrise-color); }
+.prayer-item:hover { 
+    background: rgba(255,255,255,0.06); 
+}
+.prayer-item.active {
+    background: linear-gradient(90deg, rgba(212, 175, 55, 0.15), transparent);
+    border-right-color: var(--primary-color);
+}
+.prayer-item.active .prayer-name { 
+    color: var(--primary-color); 
+    font-weight: bold; 
+}
+.prayer-item.active .prayer-time { 
+    color: #fff; 
+    font-weight: bold; 
+}
+.prayer-item.prayer-sunrise .prayer-name { 
+    color: var(--sunrise-color); 
+}
 
-.prayer-time { font-family: 'Segoe UI', sans-serif; font-size: 14px; color: var(--text-muted); direction: ltr; }
-.prayer-name { font-size: 14px; color: var(--text-muted); }
+.prayer-time { 
+    font-family: var(--font-num); 
+    font-size: 15px; 
+    color: #eee; 
+    direction: ltr; 
+}
+.prayer-name { 
+    font-size: 14px; 
+    color: #aaa; 
+}
 
 /* =========================================
    8. شاشة الإعدادات (Settings View)
    ========================================= */
 #settings-view {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background-color: #121212; z-index: 1000;
-    overflow-y: auto; padding-bottom: 20px;
+    position: fixed; 
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%;
+    background-color: var(--bg-color); 
+    z-index: 1000;
+    overflow-y: auto; 
+    padding-bottom: 20px;
     transform: translateY(100%);
     transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
 }
-#settings-view.active { transform: translateY(0); }
-/* عند عدم النشاط، نمنع التفاعل معها لكي لا تغطي على الشاشات الأخرى */
-#settings-view:not(.active) { pointer-events: none; }
+#settings-view.active { 
+    transform: translateY(0); 
+}
+#settings-view:not(.active) { 
+    pointer-events: none; 
+}
 
 .settings-header {
-    position: sticky; top: 0;
-    background: rgba(18, 18, 18, 0.98);
-    backdrop-filter: blur(12px);
+    position: sticky; 
+    top: 0;
+    background: rgba(15, 15, 15, 0.95);
+    backdrop-filter: blur(10px);
     z-index: 20;
-    padding: 16px 24px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    display: flex; justify-content: space-between; align-items: center;
+    padding: 15px 20px;
+    border-bottom: 1px solid #333;
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center;
 }
-.settings-header h3 { margin: 0; font-size: 18px; color: var(--text-main); }
+.settings-header h3 { 
+    margin: 0; 
+    font-size: 16px; 
+    color: var(--text-main); 
+}
 
 .close-btn {
-    background: rgba(255, 255, 255, 0.05); border: none; width: 36px; height: 36px;
-    border-radius: 50%; display: flex; align-items: center; justify-content: center;
-    color: var(--text-muted); cursor: pointer; transition: all 0.2s ease;
+    background: transparent; 
+    border: none; 
+    width: 30px; 
+    height: 30px;
+    border-radius: 50%; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
+    color: var(--text-muted); 
+    cursor: pointer; 
+    transition: all 0.2s ease;
 }
-.close-btn:hover { background: rgba(255, 255, 255, 0.15); color: white; transform: rotate(90deg); }
-.close-btn svg { width: 20px; height: 20px; }
+.close-btn:hover { 
+    background: rgba(255,255,255,0.1); 
+    color: white; 
+}
+.close-btn svg { 
+    width: 20px; 
+    height: 20px; 
+}
 
-.settings-content { padding: 20px; }
-.settings-section { margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #2a2a2a; }
-.settings-section:last-child { border-bottom: none; }
-.section-title { margin: 0 0 12px 0; font-size: 12px; color: var(--primary-color); opacity: 0.8; }
+.settings-content { 
+    padding: 20px; 
+    padding-bottom: 40px; 
+}
+.settings-section { 
+    margin-bottom: 25px; 
+    padding-bottom: 15px; 
+    border-bottom: 1px solid #2a2a2a; 
+}
+.settings-section:last-child { 
+    border-bottom: none; 
+}
+.section-title { 
+    font-size: 12px; 
+    color: var(--primary-color); 
+    margin-bottom: 10px; 
+    opacity: 0.8; 
+}
 
-.setting-group { margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
-.dropdown-select { padding: 6px 10px; border-radius: 6px; background: #2a2a2a; color: white; border: 1px solid #444; outline: none; }
+.setting-group { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center;
+    margin-bottom: 15px; 
+    padding-bottom: 15px; 
+    border-bottom: 1px solid #222;
+}
+.setting-group:last-child { 
+    border-bottom: none; 
+}
+.setting-group label { 
+    font-size: 14px; 
+    color: #ddd; 
+}
 
 /* حقول الوقت */
-.time-inputs-row { display: flex; gap: 15px; }
-.setting-group.compact { flex: 1; display: flex; flex-direction: column; align-items: flex-start; }
-.setting-group.compact label { font-size: 12px; margin-bottom: 5px; }
-.setting-group.compact input { width: 100%; box-sizing: border-box; text-align: center; background: #222; border: 1px solid #333; padding: 8px; border-radius: 6px; color: white; }
+.time-inputs-row { 
+    display: flex; 
+    gap: 15px; 
+}
+.setting-group.compact { 
+    flex: 1; 
+    display: flex; 
+    flex-direction: column; 
+    align-items: flex-start; 
+}
+.setting-group.compact label { 
+    font-size: 12px; 
+    margin-bottom: 5px; 
+}
+.setting-group.compact input { 
+    width: 100%; 
+    box-sizing: border-box; 
+    text-align: center; 
+    background: #222; 
+    border: 1px solid #333; 
+    padding: 8px; 
+    border-radius: 6px; 
+    color: white; 
+}
+
+.setting-group input[type="number"] {
+    width: 60px; 
+    padding: 5px; 
+    background: #222; 
+    border: 1px solid #444;
+    color: white; 
+    border-radius: 4px; 
+    text-align: center;
+}
+
+.setting-group select {
+    background: #222; 
+    color: white; 
+    border: 1px solid #444; 
+    padding: 5px 10px; 
+    border-radius: 4px;
+}
 
 /* Switch Toggle */
-.switch { position: relative; display: inline-block; width: 46px; height: 24px; }
-.switch input { opacity: 0; width: 0; height: 0; }
-.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #444; transition: .4s; border-radius: 34px; }
-.slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
-input:checked + .slider { background-color: var(--primary-color); }
-input:checked + .slider:before { transform: translateX(22px); }
+.switch { 
+    position: relative; 
+    display: inline-block; 
+    width: 40px; 
+    height: 20px; 
+}
+.switch input { 
+    opacity: 0; 
+    width: 0; 
+    height: 0; 
+}
+.slider { 
+    position: absolute; 
+    cursor: pointer; 
+    top: 0; 
+    left: 0; 
+    right: 0; 
+    bottom: 0; 
+    background-color: #333; 
+    transition: .4s; 
+    border-radius: 34px; 
+}
+.slider:before { 
+    position: absolute; 
+    content: ""; 
+    height: 14px; 
+    width: 14px; 
+    left: 3px; 
+    bottom: 3px; 
+    background-color: white; 
+    transition: .4s; 
+    border-radius: 50%; 
+}
+input:checked + .slider { 
+    background-color: var(--primary-color); 
+}
+input:checked + .slider:before { 
+    transform: translateX(20px); 
+}
 
 /* بطاقة الصوتيات */
-.audio-card { background: #1a1a1a; padding: 15px; border-radius: 12px; border: 1px solid #333; }
-.audio-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; }
-.audio-info { display: flex; flex-direction: column; }
-.audio-label { font-size: 14px; font-weight: 500; }
-.audio-status { font-size: 11px; color: #666; }
-.audio-actions { display: flex; gap: 8px; }
-.separator { height: 1px; background: #333; margin: 10px 0; }
+.audio-card { 
+    background: #1a1a1a; 
+    padding: 15px; 
+    border-radius: 12px; 
+    border: 1px solid #333; 
+}
+.audio-row { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    padding: 5px 0; 
+}
+.audio-info { 
+    display: flex; 
+    flex-direction: column; 
+}
+.audio-label { 
+    font-size: 14px; 
+    font-weight: 500; 
+}
+.audio-status { 
+    font-size: 11px; 
+    color: #666; 
+}
+.audio-actions { 
+    display: flex; 
+    gap: 8px; 
+}
 
-.settings-footer { margin-top: 30px; display: flex; flex-direction: column; gap: 12px; padding-top: 20px; border-top: 1px solid rgba(255, 255, 255, 0.05); }
+.audio-upload-row {
+    display: flex; 
+    align-items: center; 
+    gap: 10px; 
+    margin-top: 5px;
+}
+.upload-btn {
+    background: #222; 
+    border: 1px dashed #555; 
+    color: #aaa; 
+    padding: 5px 10px;
+    border-radius: 4px; 
+    font-size: 12px; 
+    cursor: pointer; 
+    flex: 1; 
+    text-align: center;
+}
+.upload-btn:hover { 
+    border-color: var(--primary-color); 
+    color: var(--primary-color); 
+}
+
+.separator { 
+    height: 1px; 
+    background: #333; 
+    margin: 10px 0; 
+}
+
+.settings-footer { 
+    margin-top: 30px; 
+    display: flex; 
+    flex-direction: column; 
+    gap: 12px; 
+    padding-top: 20px; 
+    border-top: 1px solid rgba(255, 255, 255, 0.05); 
+}
 
 /* =========================================
-   9. النوافذ المنبثقة (Modals)
+   9. النوافذ المنبثقة (Modals) - التعديل النهائي
    ========================================= */
-.modal-overlay {
-    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(4px);
-    z-index: 2000; /* أعلى قيمة لضمان الظهور فوق كل شيء */
-    display: flex; justify-content: center; align-items: center;
-    opacity: 0; pointer-events: none; transition: opacity 0.2s;
+.modal-overlay, #custom-modal {
+    position: fixed;
+    top: 0; left: 0; 
+    width: 100%; height: 100%;
+    
+    /* خلفية داكنة */
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(4px);
+    
+    /* طبقة عالية جداً وفوق كل شيء */
+    z-index: 2147483647 !important;
+    
+    /* التنسيق */
+    display: none; /* مخفي افتراضياً */
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
 }
-.modal-overlay.show { opacity: 1; pointer-events: all; }
 
-.modal-card {
-    background: var(--card-bg); width: 85%; padding: 20px;
-    border-radius: 16px; border: 1px solid #333;
-    text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-    transform: scale(0.9); transition: transform 0.2s;
+/* كلاس الظهور */
+.modal-overlay.show, #custom-modal.show {
+    display: flex !important; /* إجبار العرض */
+    opacity: 1 !important;    /* إجبار الشفافية */
+    pointer-events: all !important;
 }
-.modal-overlay.show .modal-card { transform: scale(1); }
-.modal-icon { font-size: 40px; margin-bottom: 10px; }
-.modal-card h3 { margin: 0 0 10px 0; color: white; }
+
+/* بطاقة المودال */
+.modal-card {
+    background: #1a1a1a;
+    width: 85%; max-width: 320px;
+    padding: 25px 20px;
+    border-radius: 12px;
+    border: 1px solid #333;
+    text-align: center;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.8);
+    transform: scale(0.95);
+    transition: transform 0.2s;
+}
+
+.modal-overlay.show .modal-card {
+    transform: scale(1);
+}
+
+.modal-icon { font-size: 35px; margin-bottom: 10px; display: block; }
+.modal-card h3 { margin: 5px 0 10px; color: white; font-size: 18px; }
 .modal-card p { color: #ccc; font-size: 14px; margin-bottom: 20px; line-height: 1.5; }
+
+/* الأزرار داخل المودال */
 .modal-actions { display: flex; gap: 10px; justify-content: center; }
+.modal-btn { padding: 8px 20px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold; font-family: inherit; }
+.btn-yes { background: #d4af37; color: #000; }
+.btn-no { background: #333; color: #fff; }
+.btn-yes:hover { opacity: 0.9; } .btn-no:hover { background: #444; }
+
+/* كلاس لإخفاء العناصر */
+.hidden { display: none !important; }
 
 /* =========================================
    10. الرسوم المتحركة (Animations)
    ========================================= */
-@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-@keyframes twinkle { 0% { opacity: 0.7; } 100% { opacity: 1; } }
+@keyframes spin { 
+    0% { transform: rotate(0deg); } 
+    100% { transform: rotate(360deg); } 
+}
+@keyframes twinkle { 
+    0% { opacity: 0.3; } 
+    100% { opacity: 0.8; } 
+}
 @keyframes floatCloud {
     0% { transform: translateX(0) translateY(0); }
     50% { transform: translateX(20px) translateY(-10px); }

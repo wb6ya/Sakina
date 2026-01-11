@@ -18,63 +18,95 @@ export function switchView(viewName, viewsObj) {
         viewsObj[viewName].classList.remove('hidden');
     }
 }
-
-/**
- * إظهار رسالة تنبيه مؤقتة (Toast)
- */
-export function showToast(modalObj, title, message, icon = 'ℹ️') {
-    if (!modalObj.overlay) return Promise.resolve();
+/* =========================================
+       (و) دوال المودال الداخلية (إصلاح الظهور)
+       ========================================= */
     
-    return new Promise(resolve => {
-        // تعبئة البيانات
-        modalObj.title.textContent = title;
-        modalObj.message.textContent = message;
-        modalObj.icon.textContent = icon;
-        
-        // إعداد الأزرار (إظهار زر OK فقط)
-        modalObj.confirmBtns.classList.add('hidden');
-        modalObj.alertBtns.classList.remove('hidden');
-        
-        // العرض
-        modalObj.overlay.classList.remove('hidden');
-        requestAnimationFrame(() => modalObj.overlay.classList.add('show'));
-        
-        // عند الضغط موافق
-        modalObj.btnOk.onclick = () => {
-            closeModal(modalObj);
-            resolve();
-        };
-    });
-}
+   export function showConfirm(els, title, msg, icon = "ℹ️") {
+        return new Promise(resolve => {
+            const { overlay, title: t, message: m, icon: i, confirmBtns, alertBtns, btnYes, btnNo } = els;
+            
+            if(!overlay) {
+                console.error("Modal overlay missing in HTML");
+                // في حال عدم وجود المودال، نستخدم النافذة العادية كبديل للطوارئ
+                return resolve(confirm(msg)); 
+            }
+            
+            // تعبئة المحتوى
+            if(t) t.textContent = title;
+            if(m) m.innerHTML = msg;
+            if(i) i.textContent = icon;
+            
+            // ضبط الأزرار
+            if(confirmBtns) confirmBtns.classList.remove('hidden');
+            if(alertBtns) alertBtns.classList.add('hidden');
+            
+            // 🔥 إجبار الظهور (Force Show)
+            overlay.style.display = 'flex';
+            // تأخير بسيط جداً لتفعيل الترانزيشن (opacity)
+            requestAnimationFrame(() => overlay.classList.add('show'));
 
-/**
- * إظهار رسالة تأكيد (نعم/لا)
- */
-export function showConfirm(modalObj, title, message, icon = '🤔') {
-    if (!modalObj.overlay) return Promise.resolve(false);
-    
-    return new Promise(resolve => {
-        modalObj.title.textContent = title;
-        modalObj.message.innerHTML = message;
-        modalObj.icon.textContent = icon;
-        
-        // إعداد الأزرار (إظهار نعم/لا)
-        modalObj.alertBtns.classList.add('hidden');
-        modalObj.confirmBtns.classList.remove('hidden');
-        
-        // العرض
-        modalObj.overlay.classList.remove('hidden');
-        requestAnimationFrame(() => modalObj.overlay.classList.add('show'));
-        
-        const close = (result) => {
-            closeModal(modalObj);
-            resolve(result);
-        };
-        
-        modalObj.btnYes.onclick = () => close(true);
-        modalObj.btnNo.onclick = () => close(false);
-    });
-}
+            const close = (res) => {
+                overlay.classList.remove('show');
+                // انتظار انتهاء الانيميشن ثم الإخفاء
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                }, 200);
+                
+                if(btnYes) btnYes.onclick = null;
+                if(btnNo) btnNo.onclick = null;
+                resolve(res);
+            };
+
+            if(btnYes) btnYes.onclick = () => close(true);
+            if(btnNo) btnNo.onclick = () => close(false);
+            
+            // إغلاق عند النقر في الخلفية
+            overlay.onclick = (e) => { 
+                if(e.target === overlay) close(false); 
+            };
+        });
+    }
+
+    export function showToast(els, title, msg, icon = "✅") {
+        return new Promise(resolve => {
+            const { overlay, title: t, message: m, icon: i, confirmBtns, alertBtns, btnOk } = els;
+            if(!overlay) return resolve();
+
+            if(t) t.textContent = title;
+            if(m) m.innerHTML = msg;
+            if(i) i.textContent = icon;
+
+            if(confirmBtns) confirmBtns.classList.add('hidden');
+            if(alertBtns) alertBtns.classList.remove('hidden');
+
+            // 🔥 إجبار الظهور
+            overlay.style.display = 'flex';
+            requestAnimationFrame(() => overlay.classList.add('show'));
+
+            const close = () => {
+                overlay.classList.remove('show');
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                }, 200);
+                if(btnOk) btnOk.onclick = null;
+                resolve();
+            };
+
+            if(btnOk) btnOk.onclick = close;
+            overlay.onclick = (e) => { if(e.target === overlay) close(); };
+
+            // إغلاق تلقائي إذا لم يكن خطأ
+            if(title !== "خطأ") {
+                setTimeout(() => {
+                    // نتأكد أنه ما زال توست (ولم يتحول لتأكيد)
+                    if(overlay.classList.contains('show') && confirmBtns.classList.contains('hidden')) {
+                        close();
+                    }
+                }, 2500);
+            }
+        });
+    }
 
 // دالة داخلية مساعدة لإغلاق المودال
 function closeModal(modalObj) {

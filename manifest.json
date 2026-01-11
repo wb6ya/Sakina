@@ -32,9 +32,9 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["src/content/alert.js"],
-      "css": ["src/content/alert.css"],
-      "run_at": "document_end"
+      "js": ["src/content/alert.js", "src/utils/quran-content.js"],
+      "css": ["src/content/alert.css", "src/content/quran.css"],
+      "run_at": "document_idle"
     }
   ],
   "web_accessible_resources": [
