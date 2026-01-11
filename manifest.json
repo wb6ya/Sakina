@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Sakina | سكينة",
   "short_name": "Sakina",
-  "version": "1.0.1",
+  "version": "1.0.0",
   "description": "رفيقك للذكر والصلاة أثناء التصفح - Your companion for prayer and dhikr",
   "permissions": [
     "storage",

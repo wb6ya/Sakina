@@ -509,11 +509,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // 7. زر المصحف
-    if (mainUI.btnQuran) {
+if (mainUI.btnQuran) {
         mainUI.btnQuran.onclick = async () => {
-            const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-            if (tabs[0]) chrome.tabs.sendMessage(tabs[0].id, { action: "OPEN_QURAN_MODAL" });
-            window.close();
+            try {
+                // نرسل رسالة للتبويب الحالي: "يا صفحة، افتحي المصحف"
+                const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+                
+                if (tabs[0]) {
+                    // نتأكد أن الصفحة ليست صفحة نظام (مثل الإعدادات)
+                    if (tabs[0].url.startsWith("chrome://") || tabs[0].url.startsWith("edge://")) {
+                        showToast(modal, "تنبيه", "لا يعمل المصحف في صفحات النظام.<br>افتح موقعاً عادياً.", "⚠️");
+                        return;
+                    }
+
+                    // إرسال الأمر
+                    chrome.tabs.sendMessage(tabs[0].id, { action: "OPEN_QURAN_MODAL" });
+                    window.close(); // إغلاق الإضافة
+                }
+            } catch (e) {
+                console.error("Error opening Quran:", e);
+            }
         };
     }
 
