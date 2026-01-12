@@ -542,28 +542,73 @@ if (mainUI.btnQuran) {
         };
     }
 
-    // 9. إعداد رفع الملفات (Generic Helper)
+    // 9. إعداد رفع الملفات (مع التحقق من الحجم)
     const setupUpload = (btn, input, reset, status, key) => {
         if(btn && input) {
             btn.onclick = () => input.click();
+            
             input.onchange = (e) => {
                 const f = e.target.files[0];
-                if(f) {
-                    const r = new FileReader();
-                    r.onload = async (ev) => {
-                        await saveToStorage(key, ev.target.result);
-                        if(status) { status.textContent = "مخصص"; status.style.color = "green"; }
-                        showToast(modal, "تم", "تم رفع الملف", "✅");
-                    };
-                    r.readAsDataURL(f);
+                if(!f) return;
+
+                // 1. فحص الحجم أولاً (قبل أي شيء)
+                const MAX_SIZE_MB = 2;
+                const MAX_BYTES = MAX_SIZE_MB * 1024 * 1024;
+
+                if (f.size > MAX_BYTES) {
+                    // إذا كبير: نلغي العملية فوراً ولا نلمس الملف القديم
+                    showToast(modal, "حجم الملف كبير", `يجب أن يكون أقل من ${MAX_SIZE_MB} ميجابايت.<br>لم يتم تغيير الملف الحالي.`, "⚠️");
+                    input.value = ""; // تنظيف الخانة
+                    return; // 🛑 توقف هنا (الملف القديم في الأمان)
                 }
+
+                // 2. إذا الحجم مناسب: نبدأ الاستبدال
+                const r = new FileReader();
+                
+                // تغيير النص ليعرف المستخدم أننا نعمل
+                if(status) status.textContent = "جاري الاستبدال...";
+
+                r.onload = async (ev) => {
+                    try {
+                        // هنا يتم حذف القديم ووضع الجديد تلقائياً
+                        await saveToStorage(key, ev.target.result);
+                        
+                        if(status) { 
+                            status.textContent = "مخصص"; 
+                            status.style.color = "green"; 
+                        }
+                        showToast(modal, "تم", "تم اعتماد الملف الجديد بنجاح", "✅");
+                    } catch (err) {
+                        console.error("Storage Error:", err);
+                        // معالجة حالة امتلاء الذاكرة
+                        if (err.message && err.message.includes("QUOTA")) {
+                            showToast(modal, "مساحة غير كافية", "الذاكرة ممتلئة، حاول حذف ملفات أخرى.", "❌");
+                        } else {
+                            showToast(modal, "خطأ", "فشل الحفظ", "❌");
+                        }
+                        // في حال الفشل، نظرياً الملف القديم قد يكون تأثر أو لا حسب المتصفح،
+                        // لكن عادة set هي عملية ذرية (يا تنجح كلها يا تفشل كلها).
+                        if(status) status.textContent = "خطأ";
+                    }
+                };
+                r.readAsDataURL(f);
             };
         }
+
+        // زر استعادة الافتراضي (حذف المخصص)
         if(reset) {
             reset.onclick = async () => {
-                await removeFromStorage([key]);
-                if(status) { status.textContent = "الافتراضي"; status.style.color = "#666"; }
-                showToast(modal, "تم", "تمت الاستعادة", "↺");
+                try {
+                    await removeFromStorage([key]);
+                    if(status) { 
+                        status.textContent = "الافتراضي"; 
+                        status.style.color = "#666"; 
+                    }
+                    showToast(modal, "تم", "تم الرجوع للصوت الأصلي", "↺");
+                } catch (e) {
+                    console.error("Error resetting file:", e);
+                    showToast(modal, "خطأ", "فشل الاستعادة", "❌");
+                }
             };
         }
     };

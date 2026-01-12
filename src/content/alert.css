@@ -1,8 +1,13 @@
-/* استيراد الخط العربي (تجوّل) */
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
+/* ================================================
+   Sakina Notification UI
+   Clean • Minimal • Calm
+   ================================================ */
+
+/* استيراد الخط */
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
 
 /* =================================================
-   1. الحاوية الرئيسية (Overlay)
+   1. Overlay
    ================================================= */
 #sakina-overlay {
     position: fixed;
@@ -12,259 +17,189 @@
     font-family: 'Tajawal', sans-serif;
     direction: rtl;
     line-height: 1.6;
-    pointer-events: none; /* يسمح بالنقر خلف التوست في المساحات الفارغة */
-    
-    /* حركة الدخول */
-    animation: sakinaFadeSlide 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+    pointer-events: none;
+    animation: sakinaFade 0.4s ease-out;
 }
 
-/* تفعيل النقر داخل البطاقة فقط */
 #sakina-overlay * {
     pointer-events: auto;
 }
 
-/* وضع الشاشة الكاملة (وقت الإقامة) */
+/* وضع الإقامة (شاشة كاملة) */
 #sakina-overlay.sakina-fullscreen {
-    top: 0; right: 0; bottom: 0; left: 0;
-    background: rgba(15, 23, 42, 0.9); /* خلفية كحلية معتمة جداً */
-    backdrop-filter: blur(8px);
+    inset: 0;
+    background: rgba(2, 6, 23, 0.85);
+    backdrop-filter: blur(6px);
     display: flex;
     justify-content: center;
     align-items: center;
-    pointer-events: auto; /* منع النقر في الخلفية */
+    pointer-events: auto;
 }
 
 /* =================================================
-   2. تصميم البطاقة (Card Design)
+   2. Card
    ================================================= */
 .sakina-card {
-    /* لون كحلي غامق جداً ومريح للعين بدلاً من الأسود */
-    background: rgba(30, 41, 59, 0.95);
-    backdrop-filter: blur(12px); /* تأثير الزجاج */
-    
-    width: 380px;
-    border-radius: 20px; /* زوايا أكثر نعومة */
-    
-    /* حدود ناعمة جداً للإضاءة */
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-right: 4px solid #fbbf24; /* الشريط الذهبي */
-    
-    /* ظل ناعم ومنتشر */
-    box-shadow: 
-        0 20px 25px -5px rgba(0, 0, 0, 0.3), 
-        0 8px 10px -6px rgba(0, 0, 0, 0.2);
-    
-    padding: 24px;
-    color: #f1f5f9; /* أبيض مائل للرمادي الفاتح لراحة العين */
-    box-sizing: border-box;
+    background: #0f172a;
+    width: 360px;
+    border-radius: 16px;
+
+    border-right: 3px solid #fbbf24;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+
+    padding: 20px 22px;
+    color: #e5e7eb;
+
     display: flex;
     flex-direction: column;
-    gap: 18px;
-    overflow: hidden;
-    position: relative;
+    gap: 16px;
 }
 
-/* إضافة لمعة خفيفة في الخلفية */
-.sakina-card::before {
-    content: '';
-    position: absolute;
-    top: -50%; left: -50%;
-    width: 200%; height: 200%;
-    background: radial-gradient(circle, rgba(251, 191, 36, 0.05) 0%, transparent 60%);
-    pointer-events: none;
-    z-index: 0;
-}
-
-/* تكبير البطاقة في وضع الشاشة الكاملة */
+/* تكبير خفيف في وضع الإقامة */
 #sakina-overlay.sakina-fullscreen .sakina-card {
-    width: 450px;
-    transform: scale(1.05);
-    background: #1e293b;
-    border: 1px solid rgba(251, 191, 36, 0.3);
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    width: 420px;
 }
 
 /* =================================================
-   3. القسم العلوي (Header)
+   3. Header
    ================================================= */
 .sakina-header-row {
     display: flex;
-    align-items: flex-start;
-    gap: 16px;
-    position: relative;
-    z-index: 1;
+    align-items: center;
+    gap: 14px;
 }
 
-/* صندوق الأيقونة */
 .sakina-icon-box {
-    background: linear-gradient(135deg, #fbbf24, #d97706); /* تدرج برتقالي/ذهبي دافئ */
-    width: 44px;
-    height: 44px;
-    border-radius: 50%; /* دائري بالكامل ليعطي انطباع النعومة */
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(251,191,36,0.15);
+    color: #fbbf24;
     display: flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-    color: #fff;
-    box-shadow: 0 4px 15px rgba(251, 191, 36, 0.3); /* توهج للأيقونة */
 }
 
 .sakina-icon-box svg {
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
     fill: currentColor;
 }
 
-/* النصوص */
 .sakina-text-content {
     flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
 }
 
 .sakina-title {
     margin: 0;
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 700;
     color: #ffffff;
-    letter-spacing: 0.5px;
 }
 
 .sakina-msg {
-    margin-top: 4px;
+    margin-top: 2px;
     font-size: 13px;
-    color: #94a3b8; /* رمادي مزرق فاتح */
-    font-weight: 500;
+    color: #9ca3af;
 }
 
 /* زر الإغلاق */
 .sakina-close-btn {
     background: transparent;
     border: none;
-    color: #64748b;
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: 26px;
+    height: 26px;
     border-radius: 50%;
+    color: #9ca3af;
     cursor: pointer;
-    transition: all 0.2s;
-    font-size: 18px;
 }
+
 .sakina-close-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
+    background: rgba(255,255,255,0.08);
+    color: #ffffff;
 }
 
 /* =================================================
-   4. قسم العداد (Timer)
+   4. Timer
    ================================================= */
 .sakina-timer-container {
-    background: rgba(0, 0, 0, 0.2); /* خلفية داكنة خفيفة جداً */
-    padding: 10px;
-    border-radius: 12px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 10px;
+    padding: 12px;
     text-align: center;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    position: relative;
-    z-index: 1;
 }
 
 .sakina-timer-digits {
-    font-family: 'Segoe UI', 'Roboto Mono', monospace;
-    font-size: 36px;
+    font-family: 'Segoe UI', monospace;
+    font-size: 32px;
     font-weight: 700;
-    color: #fbbf24; /* ذهبي مشرق */
-    letter-spacing: 2px;
-    /* توهج خفيف للأرقام */
-    text-shadow: 0 0 15px rgba(251, 191, 36, 0.3);
+    color: #fbbf24;
+    letter-spacing: 1px;
     margin: 0;
-    line-height: 1;
 }
 
 /* =================================================
-   5. قسم الاقتباس (Quote)
+   5. Quote / Dhikr
    ================================================= */
 .sakina-quote-container {
-    background: rgba(255, 255, 255, 0.03);
-    padding: 14px 18px;
-    border-radius: 12px;
-    border-right: 2px solid rgba(251, 191, 36, 0.5); /* خط ذهبي رفيع */
-    position: relative;
-    z-index: 1;
-    margin-top: 4px;
+    background: rgba(255,255,255,0.03);
+    border-radius: 10px;
+    padding: 12px 14px;
+    border-right: 2px solid rgba(251,191,36,0.4);
 }
 
 .sakina-quote-body {
     margin: 0 0 6px 0;
-    font-size: 14px;
-    color: #e2e8f0;
-    line-height: 1.7;
-    font-weight: 400;
+    font-size: 13px;
+    color: #e5e7eb;
 }
 
 .sakina-quote-source {
-    display: block;
     font-size: 11px;
-    color: #94a3b8;
+    color: #9ca3af;
     text-align: left;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
 }
 
 /* =================================================
-   6. الأزرار السفلية (Actions)
+   6. Actions
    ================================================= */
 .sakina-actions-row {
     display: flex;
     justify-content: flex-end;
-    padding-top: 8px;
-    z-index: 1;
-}
-
-.sakina-action-btn {
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    color: #f8fafc;
-    padding: 8px 20px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 500;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
     gap: 8px;
 }
 
+.sakina-action-btn {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.08);
+    color: #f9fafb;
+    padding: 7px 16px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+}
+
 .sakina-action-btn:hover {
-    background: rgba(255, 255, 255, 0.15);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    background: rgba(255,255,255,0.08);
 }
 
 .sakina-action-btn.muted {
-    opacity: 0.6;
-    background: transparent;
-    border: none;
+    opacity: 0.5;
     cursor: default;
-    box-shadow: none;
-    transform: none;
 }
 
 /* =================================================
-   7. الرسوم المتحركة (Animations)
+   7. Animations
    ================================================= */
-@keyframes sakinaFadeSlide {
-    0% {
+@keyframes sakinaFade {
+    from {
         opacity: 0;
-        transform: translateY(-30px) scale(0.9);
+        transform: translateY(-12px);
     }
-    100% {
+    to {
         opacity: 1;
-        transform: translateY(0) scale(1);
+        transform: translateY(0);
     }
 }

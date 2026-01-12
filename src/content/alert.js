@@ -7,11 +7,42 @@ if (typeof window.sakinaAlertInitialized === 'undefined') {
     window.sakinaAlertInitialized = true;
 
     const ICONS = {
-        MOSQUE: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L4 7v13h16V7l-8-5z"/><path d="M9.5 20v-5h5v5"/><path d="M12 2v5"/><circle cx="12" cy="10" r="1.5"/></svg>`,
-        PRAYING: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/><path d="M14 8c0 2.5-2 2.5-2 6v6h-4v-6c0-3.5-2-3.5-2-6 0-3 3-5 5-5s5 2 5 5z"/></svg>`,
-        TASBIH: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="7" r="1"/><circle cx="16" cy="9" r="1"/><circle cx="17" cy="13" r="1"/><circle cx="15" cy="17" r="1"/><circle cx="12" cy="19" r="1"/><circle cx="9" cy="17" r="1"/><circle cx="7" cy="13" r="1"/><circle cx="8" cy="9" r="1"/><path d="M12 2v2"/></svg>`,
-        SUN: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2"/><path d="M12 21v2"/><path d="M4.22 4.22l1.42 1.42"/><path d="M18.36 18.36l1.42 1.42"/><path d="M1 12h2"/><path d="M21 12h2"/><path d="M4.22 19.78l1.42-1.42"/><path d="M18.36 5.64l1.42-1.42"/></svg>`,
-        HOURGLASS: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg>`
+        MOSQUE: `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 20h16"/>
+        <path d="M6 20V10"/>
+        <path d="M18 20V10"/>
+        <path d="M12 4c-3 2-6 4-6 6h12c0-2-3-4-6-6z"/>
+        <path d="M12 4V2"/>
+        <path d="M10 20v-4h4v4"/>
+        </svg>`,
+        PRAYING: `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="5" r="1.5"/>
+        <path d="M10 8c1.5 1.5 3.5 1.5 5 3"/>
+        <path d="M8 14h8"/>
+        <path d="M6 16h12"/>
+        </svg>`,
+        TASBIH: `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 3c4 0 7 3 7 7s-3 8-7 11c-4-3-7-7-7-11s3-7 7-7z"/>
+        <circle cx="12" cy="8" r="1"/>
+        </svg>`,
+        SUN: `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 14a8 8 0 0 1 16 0"/>
+        <path d="M12 2v4"/>
+        <path d="M6 10l-2-2"/>
+        <path d="M18 10l2-2"/>
+        </svg>`,
+        HOURGLASS: `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 2h12"/>
+        <path d="M6 22h12"/>
+        <path d="M8 2v4l4 4 4-4V2"/>
+        <path d="M8 22v-4l4-4 4 4v4"/>
+        </svg>
+        `
     };
 
     let countdownInterval = null;
