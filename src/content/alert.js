@@ -3,6 +3,9 @@
  * @description إدارة واجهة الإشعارات (نسخة منع التكرار)
  */
 
+if (typeof window.sakinaAlertInitialized === 'undefined') {
+    window.sakinaAlertInitialized = true;
+
 const ICONS = {
     MOSQUE: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L4 7v13h16V7l-8-5z"/><path d="M9.5 20v-5h5v5"/><path d="M12 2v5"/><circle cx="12" cy="10" r="1.5"/></svg>`,
     PRAYING: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/><path d="M14 8c0 2.5-2 2.5-2 6v6h-4v-6c0-3.5-2-3.5-2-6 0-3 3-5 5-5s5 2 5 5z"/></svg>`,
@@ -166,4 +169,4 @@ function closeAlert(el) {
     el.style.opacity = '0';
     el.style.transform = 'translateY(-10px)';
     setTimeout(() => { if (el && el.parentNode) el.remove(); }, 300);
-}
+}}

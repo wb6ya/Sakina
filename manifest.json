@@ -5,13 +5,13 @@
   "version": "1.0.0",
   "description": "رفيقك للذكر والصلاة أثناء التصفح - Your companion for prayer and dhikr",
   "permissions": [
-    "storage",
-    "unlimitedStorage",
-    "alarms",
-    "activeTab",
-    "geolocation",
-    "offscreen"
-  ],
+      "storage",
+      "alarms",
+      "activeTab",
+      "geolocation",
+      "offscreen",
+      "scripting" 
+    ],
   "background": {
     "service_worker": "src/background/service-worker.js",
     "type": "module"

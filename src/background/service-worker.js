@@ -355,7 +355,7 @@ async function showNotification(titleKey, msgKey, type, timerData, quoteData, pr
     };
 
     activeNotification = payload;
-    sendToActiveTab(payload);
+    injectAlertToActiveTab(payload);
 
     if (notificationTimeout) clearTimeout(notificationTimeout);
     // زيادة وقت العرض للشاشة الكاملة
@@ -365,21 +365,48 @@ async function showNotification(titleKey, msgKey, type, timerData, quoteData, pr
 /* ==========================================
    دالة الإرسال (Tab Communication)
    ========================================== */
-async function sendToActiveTab(payload) {
+async function injectAlertToActiveTab(payload) {
     try {
+        // نحصل على التبويب النشط في النافذة الحالية
         const tabs = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
         
-        if (tabs.length > 0) {
-            const tab = tabs[0];
-            // التحقق الأمني: عدم الإرسال لصفحات النظام
-            if (tab.url && !tab.url.startsWith('chrome://') && !tab.url.startsWith('edge://') && !tab.url.startsWith('about:')) {
-                chrome.tabs.sendMessage(tab.id, payload).catch(() => {
-                    // تجاهل الخطأ في حالة عدم تحميل المحتوى بعد
-                });
-            }
+        if (tabs.length === 0) return;
+        const tabId = tabs[0].id;
+
+        // نتأكد أننا لا نحاول الحقن في صفحات النظام المحظورة
+        if (tabs[0].url.startsWith("chrome://") || tabs[0].url.startsWith("edge://") || tabs[0].url.startsWith("about:")) {
+            console.log("Cannot inject into system page");
+            return;
         }
+
+        // نقوم بحقن ملف CSS أولاً
+        await chrome.scripting.insertCSS({
+            target: { tabId: tabId },
+            files: ["src/content/alert.css", "src/content/quran.css"]
+        });
+
+        // ثم نحقن ملف JS، وبعدها نرسل الرسالة له
+        // ملاحظة: بما أننا نستخدم الحقن البرمجي، قد لا نحتاج content_scripts في manifest لكل الصفحات
+        // لكن بما أنك تريده يعمل دائماً، سنرسل الرسالة فقط إذا كان الملف محقوناً، أو نحقنه إذا لم يكن.
+        
+        // الطريقة الأضمن: إرسال الرسالة مباشرة
+        try {
+            await chrome.tabs.sendMessage(tabId, payload);
+        } catch (error) {
+            // إذا فشل الإرسال (يعني الملف غير موجود)، نقوم بحقنه ثم إرسال الرسالة
+            console.log("Script not ready, injecting...", error);
+            await chrome.scripting.executeScript({
+                target: { tabId: tabId },
+                files: ["src/content/alert.js"]
+            });
+            // انتظار بسيط ليتفعل السكربت
+            setTimeout(() => {
+                chrome.tabs.sendMessage(tabId, payload).catch(e => console.error("Retry failed", e));
+            }, 100);
+        }
+
     } catch (e) {
-        console.error("Error sending to active tab:", e);
+        console.error("Error injecting alert:", e);
     }
 }
 
