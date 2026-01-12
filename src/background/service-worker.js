@@ -90,9 +90,9 @@ async function scheduleNextPrayer(isStartupCheck = false) {
         const timings = times.prayer_times;
         const timezone = location.user_location.timezone;
         const appSettings = settings.app_settings || {};
-        const enableSunrise = appSettings.enableSunrise === true;
+        const enableSunrise = appSettings.enableSunrise !== false;
         const preMinutes = Number(appSettings.preAdhanMinutes || 15);
-        const iqamaMinutes = Number(appSettings.iqamaMinutes || 25);
+        const iqamaMinutes = Number(appSettings.iqamaMinutes || 15);
         const now = Date.now();
         const isFriday = new Date().getDay() === 5;
 
@@ -134,7 +134,7 @@ async function scheduleNextPrayer(isStartupCheck = false) {
 }
 
 async function manageAdhkarAlarm(appSettings) {
-    if (appSettings.adhkarEnabled === true) {
+    if (appSettings.adhkarEnabled !== false) {
         const interval = parseInt(appSettings.adhkarInterval) || 30;
         const existingAlarm = await chrome.alarms.get(ALARM_NAMES.ADHKAR);
         if (!existingAlarm || existingAlarm.periodInMinutes !== interval) {
@@ -188,18 +188,46 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
             scheduleNextPrayer(); 
         }
     }
+    // --- ⏳ 2. منبه قبل الأذان (المنطق الذكي) ---
     else if (alarm.name === ALARM_NAMES.PRE_PRAYER) {
         if (!nextPrayerObj) return;
-        const preMinutes = Number(appSettings.preAdhanMinutes || 15);
-        const idealAlertTime = nextPrayerObj.time.getTime() - (preMinutes * 60 * 1000);
 
-        if (Math.abs(now - idealAlertTime) < 3 * 60 * 1000) {
-            const prayerKey = (nextPrayerObj.key === 'Dhuhr' && isFriday) ? 'Jumuah' : nextPrayerObj.key;
-            showNotification('alertPreTitle', 'alertPreMsg', "PRE", { mode: 'COUNTDOWN', targetTime: nextPrayerObj.time.getTime() }, null, prayerKey);
-        } else {
-            if (now < idealAlertTime) chrome.alarms.create(ALARM_NAMES.PRE_PRAYER, { when: idealAlertTime });
+        // نحسب الوقت المتبقي للأذان بالمللي ثانية
+        const timeToAdhan = nextPrayerObj.time.getTime() - now;
+        
+        // حد الـ 3 دقائق (180,000 مللي ثانية)
+        const THREE_MINUTES = 3 * 60 * 1000;
+        const TWO_MINUTES = 2 * 60 * 1000;
+
+        // هل الوقت المتبقي أقل من أو يساوي 3 دقائق؟
+        const isShortTime = timeToAdhan <= THREE_MINUTES;
+
+        // تجهيز بيانات التنبيه
+        const prayerKey = (nextPrayerObj.key === 'Dhuhr' && isFriday) ? 'Jumuah' : nextPrayerObj.key;
+        
+        // إرسال التنبيه
+        showNotification(
+            'alertPreTitle', 
+            'alertPreMsg', 
+            "PRE", 
+            { mode: 'COUNTDOWN', targetTime: nextPrayerObj.time.getTime() }, 
+            null, 
+            prayerKey,
+            isShortTime // 🔥 نرسل هذا المتغير الجديد (true = ابق حتى الأذان)
+        );
+
+        // إذا كان الوقت طويلاً (أكثر من 3 دقائق)، نجدول تنبيهاً إضافياً قبل دقيقتين
+        if (!isShortTime) {
+            // نحسب متى يجب أن يرن التنبيه الثاني (وقت الأذان - دقيقتين)
+            const secondAlertTime = nextPrayerObj.time.getTime() - TWO_MINUTES;
+            
+            // نتأكد أن الوقت المستقبلي منطقي (أكبر من الآن)
+            if (secondAlertTime > now) {
+                console.log("Scheduling final pre-prayer alert at -2 mins");
+                chrome.alarms.create(ALARM_NAMES.PRE_PRAYER, { when: secondAlertTime });
+            }
         }
-    } 
+    }
     else if (alarm.name === ALARM_NAMES.IQAMA) {
         const delay = Math.abs(now - alarm.scheduledTime);
         if (delay < 3 * 60 * 1000) { 
@@ -271,6 +299,7 @@ async function showNotification(titleKey, msgKey, type, timerData, quoteData, pr
             source: lang === 'en' ? quoteData.source_en : quoteData.source
         } : null,
         isFullscreen: (type === 'IQAMA' && appSettings.fullscreenIqama === true),
+        stayUntilAdhan: stayUntilAdhan,
         btnLabels: { stopAudio: t.btnStopAudio, muted: t.btnMuted, close: t.btnClose }
     };
 
@@ -284,14 +313,18 @@ async function showNotification(titleKey, msgKey, type, timerData, quoteData, pr
 }
 
 // دالة الحقن الذكي (بديلة لـ sendToActiveTab)
+// دالة الحقن الذكي (نسخة مصححة للحماية من الخطأ)
 async function injectAlertToActiveTab(payload) {
     try {
         const tabs = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
         
         if (tabs.length === 0) return;
-        const tabId = tabs[0].id;
+        
+        const tab = tabs[0]; // تبسيط الكود
+        const tabId = tab.id;
 
-        if (tabs[0].url.startsWith("chrome://") || tabs[0].url.startsWith("edge://") || tabs[0].url.startsWith("about:")) {
+        // 🔥 الإصلاح هنا: التحقق من وجود الرابط (!tab.url) قبل فحص محتواه
+        if (!tab.url || tab.url.startsWith("chrome://") || tab.url.startsWith("edge://") || tab.url.startsWith("about:")) {
             return;
         }
 

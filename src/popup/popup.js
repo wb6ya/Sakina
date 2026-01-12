@@ -1,28 +1,36 @@
 /**
  * @file popup.js
- * @description وحدة التحكم الرئيسية (Main Controller) - نسخة محسنة ونظيفة
+ * @description وحدة التحكم الرئيسية - النسخة الذهبية (إصلاحات الذاكرة والرفع والترجمة)
  */
 
-// 1. الاستيرادات
 import { TRANSLATIONS } from '../utils/translations.js';
 import { getNextPrayer } from '../utils/time-utils.js';
 import { getFromStorage, saveToStorage, STORAGE_KEYS, removeFromStorage } from '../utils/storage.js';
 import { fetchPrayerTimes } from '../utils/api.js';
 import { getGeolocation } from '../utils/locations.js';
-import { switchView } from '../utils/ui-helpers.js'; // نستورد فقط switchView
+import { switchView } from '../utils/ui-helpers.js';
 import { getPrayerState } from '../utils/prayer-logic.js';
 
-// 2. المتغيرات العامة
 let searchDebounceTimer = null;
 let timerInterval = null;
 let headerUpdateInterval = null;
-const EMAIL_ID = "sakina_user@example.com"; // لتجنب حظر API الخرائط
+let currentToastTimeout = null;
+const EMAIL_ID = "sakina_user@example.com";
+
+let lastActivePrayerKey = null;
+let lastLanguage = null;
+
+let timeFormatter = null;
+let hijriFormatter = null;
+let gregFormatter = null;
+
+const getT = () => {
+    const lang = document.documentElement.lang || document.body.lang || 'ar';
+    return TRANSLATIONS[lang] || TRANSLATIONS['ar'];
+};
 
 document.addEventListener('DOMContentLoaded', async () => {
 
-    /* =========================================
-       (أ) تعريف العناصر (DOM Elements)
-       ========================================= */
     const getEl = (id) => document.getElementById(id);
 
     const views = {
@@ -60,7 +68,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         toggleFullscreen: getEl('toggle-fullscreen-iqama'),
         toggleAdhkar: getEl('toggle-adhkar'),
 
-        // Upload Elements
         btnUploadAdhan: getEl('btn-upload-adhan'), inputUploadAdhan: getEl('upload-adhan'), 
         btnResetAdhan: getEl('btn-reset-adhan'), statusAdhan: getEl('status-adhan'),
         btnUploadIqama: getEl('btn-upload-iqama'), inputUploadIqama: getEl('upload-iqama'), 
@@ -86,9 +93,72 @@ document.addEventListener('DOMContentLoaded', async () => {
         btnAuto: getEl('btn-auto-locate')
     };
 
-    /* =========================================
-       (ب) دوال المنطق وتحديث الواجهة
-       ========================================= */
+    // --- الوظائف المساعدة ---
+
+    function updateHeaderNow() {
+        const now = new Date();
+        const lang = document.body.lang || 'ar';
+
+        if (!timeFormatter) {
+            const locale = lang === 'ar' ? 'ar-SA' : 'en-US';
+            timeFormatter = new Intl.DateTimeFormat(locale, { hour: 'numeric', minute: '2-digit', hour12: true });
+        }
+        if (!hijriFormatter) {
+            const locale = lang === 'ar' ? 'ar-SA-u-ca-islamic' : 'en-US-u-ca-islamic';
+            hijriFormatter = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long' });
+        }
+        if (!gregFormatter) {
+            const locale = lang === 'ar' ? 'ar-SA' : 'en-US';
+            gregFormatter = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', year: 'numeric' });
+        }
+
+        if(mainUI.digitalClock) mainUI.digitalClock.textContent = timeFormatter.format(now);
+        if(mainUI.hijriDate) { try { mainUI.hijriDate.textContent = hijriFormatter.format(now); } catch (e) { mainUI.hijriDate.textContent = "--"; } }
+        if(mainUI.currentDate) { try { mainUI.currentDate.style.display = "inline"; mainUI.currentDate.textContent = gregFormatter.format(now); } catch (e) {} }
+    }
+
+    function startLiveHeaderUpdate() {
+        if (headerUpdateInterval) clearInterval(headerUpdateInterval);
+        updateHeaderNow();
+        headerUpdateInterval = setInterval(updateHeaderNow, 1000);
+    }
+
+    // 🔥 دالة ذكية جداً لفحص وجود الملفات وتحديث الأزرار والترجمة
+    async function updateAudioStatusLabels() {
+        const t = getT();
+        
+        try {
+            // 1. فحص ملف الأذان (بالحجم)
+            const adhanBytes = await chrome.storage.local.getBytesInUse(STORAGE_KEYS.CUSTOM_ADHAN);
+            const hasCustomAdhan = adhanBytes > 0;
+            
+            if(settingsUI.statusAdhan) {
+                settingsUI.statusAdhan.textContent = hasCustomAdhan ? t.statusCustom : t.statusDefault;
+                settingsUI.statusAdhan.style.color = hasCustomAdhan ? "green" : "#666";
+            }
+            if(settingsUI.btnResetAdhan) {
+                settingsUI.btnResetAdhan.disabled = !hasCustomAdhan;
+                settingsUI.btnResetAdhan.style.opacity = hasCustomAdhan ? "1" : "0.3";
+                settingsUI.btnResetAdhan.style.cursor = hasCustomAdhan ? "pointer" : "default";
+            }
+
+            // 2. فحص ملف الإقامة (بالحجم)
+            const iqamaBytes = await chrome.storage.local.getBytesInUse(STORAGE_KEYS.CUSTOM_IQAMA);
+            const hasCustomIqama = iqamaBytes > 0;
+
+            if(settingsUI.statusIqama) {
+                settingsUI.statusIqama.textContent = hasCustomIqama ? t.statusCustom : t.statusDefault;
+                settingsUI.statusIqama.style.color = hasCustomIqama ? "green" : "#666";
+            }
+            if(settingsUI.btnResetIqama) {
+                settingsUI.btnResetIqama.disabled = !hasCustomIqama;
+                settingsUI.btnResetIqama.style.opacity = hasCustomIqama ? "1" : "0.3";
+                settingsUI.btnResetIqama.style.cursor = hasCustomIqama ? "pointer" : "default";
+            }
+        } catch (e) {
+            console.error("Error checking audio status:", e);
+        }
+    }
 
     async function updateUI() {
         try {
@@ -105,36 +175,34 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             if (!timings) return;
 
-            const state = getPrayerState(timings, Number(settings.iqamaMinutes || 25));
+            const state = getPrayerState(timings, Number(settings.iqamaMinutes || 10));
             const pName = t[`prayer${state.prayerKey}`] || state.prayerKey;
 
-            // تحديث النصوص والألوان حسب الحالة
             if (state.mode === 'WAITING_IQAMA') {
-                setUIState(
-                    lang === 'ar' ? `يُرفع الآن أذان ${pName}` : `Now Adhan for ${pName}`,
-                    '#fbbf24', '18px',
-                    lang === 'ar' ? "متبقي على الإقامة" : "Time until Iqama"
-                );
+                setUIState(`${t.stateAdhan} ${pName}`, '#fbbf24', '18px', t.stateWaiting);
                 startTimer(state.iqamaTime);
             } else if (state.mode === 'IQAMA_ACTIVE') {
-                setUIState(
-                    lang === 'ar' ? `تُقام الآن صلاة ${pName}` : `Now Iqama for ${pName}`,
-                    '#4ade80', '18px', ""
-                );
+                setUIState(`${t.stateIqama} ${pName}`, '#4ade80', '18px', "");
                 if(mainUI.countdown) mainUI.countdown.textContent = "";
             } else {
-                // الوضع الطبيعي (الصلاة القادمة)
                 const next = getNextPrayer(timings, locationData.user_location?.timezone, settings.enableSunrise);
                 if (next) {
                     setUIState(t[`prayer${next.key}`] || next.key, '#ffffff', '', t.nextPrayer || "الصلاة القادمة");
                     startTimer(next.time.getTime());
-                    renderPrayersList(timings, next.key, settings.enableSunrise, lang);
+                    if (next.key !== lastActivePrayerKey || lang !== lastLanguage) {
+                        renderPrayersList(timings, next.key, settings.enableSunrise, lang);
+                        lastActivePrayerKey = next.key;
+                        lastLanguage = lang;
+                    }
                 }
             }
 
-            // إذا كانت الحالة غير طبيعية، نحدث القائمة أيضاً
             if (state.mode !== 'NORMAL') {
-                renderPrayersList(timings, state.prayerKey, settings.enableSunrise, lang);
+                if (state.prayerKey !== lastActivePrayerKey || lang !== lastLanguage) {
+                    renderPrayersList(timings, state.prayerKey, settings.enableSunrise, lang);
+                    lastActivePrayerKey = state.prayerKey;
+                    lastLanguage = lang;
+                }
             }
         } catch (e) {
             console.error("UI Update Error:", e);
@@ -143,30 +211,31 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     function setUIState(text, color, fontSize, label) {
         if(mainUI.nextPrayerName) {
-            mainUI.nextPrayerName.textContent = text;
-            mainUI.nextPrayerName.style.color = color;
-            if(fontSize) mainUI.nextPrayerName.style.fontSize = fontSize;
+            if (mainUI.nextPrayerName.textContent !== text) {
+                mainUI.nextPrayerName.textContent = text;
+                mainUI.nextPrayerName.style.color = color;
+                if(fontSize) mainUI.nextPrayerName.style.fontSize = fontSize;
+                else mainUI.nextPrayerName.style.fontSize = ''; 
+            }
         }
-        if(label !== null && mainUI.dateDisplay) mainUI.dateDisplay.textContent = label;
+        if(label !== null && mainUI.dateDisplay) {
+             if (mainUI.dateDisplay.textContent !== label) mainUI.dateDisplay.textContent = label;
+        }
     }
 
     function startTimer(targetTime) {
         if (timerInterval) clearInterval(timerInterval);
-        
         const update = () => {
             let diff = targetTime - Date.now();
             if (diff < 0) diff = 0;
-            
             const h = Math.floor(diff / 3600000);
             const m = Math.floor((diff % 3600000) / 60000);
             const s = Math.floor((diff % 60000) / 1000);
-            
             if (mainUI.countdown) {
                 mainUI.countdown.textContent = 
                     `${h > 0 ? h.toString().padStart(2, '0') + ':' : ''}${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
             }
         };
-        
         update();
         timerInterval = setInterval(update, 1000);
     }
@@ -174,7 +243,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     function renderPrayersList(timings, activeKey, includeSunrise, lang) {
         if (!mainUI.prayersList) return;
         mainUI.prayersList.innerHTML = '';
-        
         const t = TRANSLATIONS[lang];
         const keys = ['Fajr', ...(includeSunrise ? ['Sunrise'] : []), 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
         
@@ -184,24 +252,23 @@ document.addEventListener('DOMContentLoaded', async () => {
             let hr = parseInt(h);
             const ampm = hr >= 12 ? (lang === 'ar' ? 'م' : 'PM') : (lang === 'ar' ? 'ص' : 'AM');
             hr = hr % 12 || 12;
-            
             const item = document.createElement('div');
+            const isFriday = new Date().getDay() === 5;
+            const displayKey = (key === 'Dhuhr' && isFriday) ? 'Jumuah' : key;
             const isActive = (key === activeKey) || (activeKey === 'Jumuah' && key === 'Dhuhr');
-            
             item.className = `prayer-item ${isActive ? 'active' : ''}`;
             if(key === 'Sunrise') item.classList.add('prayer-sunrise');
-            
-            item.innerHTML = `<span>${t[`prayer${key}`]}</span><span dir="ltr">${hr}:${m} ${ampm}</span>`;
+            item.innerHTML = `<span>${t[`prayer${displayKey}`] || t[`prayer${key}`]}</span><span dir="ltr">${hr}:${m} ${ampm}</span>`;
             mainUI.prayersList.appendChild(item);
         });
     }
 
     async function loadMainView(locData) {
         if(mainUI.locationName) mainUI.locationName.textContent = locData.name || "...";
-        
         const settings = await getFromStorage(STORAGE_KEYS.SETTINGS) || {};
-        applyLanguage(settings.language || 'ar');
-        
+        const lang = settings.language || 'ar';
+        applyLanguage(lang);
+        startLiveHeaderUpdate(); 
         await updateUI();
         switchView('main', views);
     }
@@ -210,90 +277,69 @@ document.addEventListener('DOMContentLoaded', async () => {
         const t = TRANSLATIONS[lang] || TRANSLATIONS['ar'];
         document.body.dir = t.dir;
         document.body.lang = lang;
-        
-        // تحديث النصوص الثابتة
-        const mapping = [
-            [search.cityInput, 'placeholder', t.placeholderCity],
-            [modal.btnYes, 'textContent', t.btnYes],
-            [modal.btnNo, 'textContent', t.btnNo],
-            [modal.btnOk, 'textContent', t.btnOk],
-            [settingsUI.btnSave, 'textContent', t.save],
-            [settingsUI.btnReset, 'textContent', t.reset],
-            [search.btnManual, 'textContent', t.manualSearch],
-            [search.btnAuto, 'textContent', t.autoLocate]
-        ];
-        
-        mapping.forEach(([el, prop, val]) => { if(el) el[prop] = val; });
-    }
+        document.documentElement.lang = lang;
 
-    // تحديث الهيدر (الساعة والتاريخ)
-    function startLiveHeaderUpdate() {
-        const update = () => {
-            const now = new Date();
+        timeFormatter = null;
+        hijriFormatter = null;
+        gregFormatter = null;
 
-        // 1. الساعة بنظام 12 ساعة
-        if(mainUI.digitalClock) {
-            // نستخدم Intl للحصول على تحكم أفضل في AM/PM
-            const timeString = now.toLocaleTimeString('en-US', { 
-                hour: 'numeric', 
-                minute: '2-digit', 
-                hour12: true 
-            });
-            mainUI.digitalClock.textContent = timeString;
-        }
-
-        // 2. التاريخ الهجري (اليوم والشهر فقط)
-        if(mainUI.hijriDate) {
-            try {
-                const hijri = new Intl.DateTimeFormat('ar-SA-u-ca-islamic', {
-                    day: 'numeric', 
-                    month: 'long' 
-                }).format(now);
-                mainUI.hijriDate.textContent = hijri;
-            } catch (e) {
-                mainUI.hijriDate.textContent = "--";
-            }
-        }
-
-        // 3. التاريخ الميلادي (اليوم والشهر والسنة)
-        if(mainUI.currentDate) {
-            try {
-                // نظهر التاريخ الميلادي باختصار
-                const greg = new Intl.DateTimeFormat('ar-SA', {
-                    day: 'numeric',
-                    month: 'short', // اسم الشهر مختصر
-                    year: 'numeric'
-                }).format(now);
-                
-                mainUI.currentDate.style.display = "inline"; // التأكد من ظهوره
-                mainUI.currentDate.textContent = greg;
-            } catch (e) {
-                console.error(e);
-            }
-        }
+        const setText = (id, text) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = text;
         };
-        update();
-        headerUpdateInterval = setInterval(update, 1000);
-    }
 
-    /* =========================================
-       (ج) دوال البحث والموقع (مع إصلاحات الحظر)
-       ========================================= */
+        if (search.cityInput) search.cityInput.placeholder = t.placeholderCity;
+        setText('txt-welcome-title', t.welcomeTitle);
+        setText('txt-welcome-desc', t.welcomeDesc);
+        setText('txt-or', t.or);
+        setText('txt-btn-auto', t.autoLocate);
+        if (search.btnManual) search.btnManual.textContent = t.manualSearch;
+        
+        const onboardingLangBtn = document.getElementById('btn-toggle-lang-onboarding');
+        if (onboardingLangBtn) onboardingLangBtn.textContent = t.langSwitchBtn;
+
+        if (mainUI.dateDisplay) mainUI.dateDisplay.textContent = t.nextPrayer;
+        if (mainUI.btnQuran) mainUI.btnQuran.textContent = t.btnQuran;
+
+        setText('txt-settings-title', t.settingsTitle);
+        setText('sec-general', t.secGeneral);
+        setText('sec-alerts', t.secAlerts);
+        setText('sec-audio', t.secAudio);
+        setText('sec-adhkar', t.secAdhkar);
+        setText('sec-timing', t.secTiming);
+
+        setText('lbl-language', t.lblLanguage);
+        setText('lbl-sunrise', t.lblSunriseAlert);
+        setText('lbl-adhan-sound', t.lblAdhanSound);
+        setText('lbl-pre-time', t.lblPreTime);
+        setText('lbl-iqama-time', t.lblIqamaTime);
+        setText('lbl-fullscreen', t.lblFullscreen);
+        setText('lbl-audio-adhan', t.lblAudioAdhan);
+        setText('lbl-audio-iqama', t.lblAudioIqama);
+        setText('lbl-adhkar-enable', t.lblAdhkarEnable);
+        setText('lbl-adhkar-time', t.lblAdhkarTime);
+
+        if (settingsUI.btnSave) settingsUI.btnSave.textContent = t.save;
+        if (settingsUI.btnReset) settingsUI.btnReset.textContent = t.reset;
+        if (modal.btnYes) modal.btnYes.textContent = t.btnYes;
+        if (modal.btnNo) modal.btnNo.textContent = t.btnNo;
+        if (modal.btnOk) modal.btnOk.textContent = t.btnOk;
+        
+        updateHeaderNow();
+        // 🔥 تحديث نصوص الأصوات فوراً بعد تغيير اللغة (هنا الحل)
+        updateAudioStatusLabels();
+    }
 
     async function fetchCitySuggestions(query) {
         try {
             const lang = document.body.lang || 'ar';
             const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&addressdetails=1&accept-language=${lang}&email=${EMAIL_ID}`;
-            
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 5000);
-
             const res = await fetch(url, { signal: controller.signal });
             clearTimeout(timeoutId);
-
             const text = await res.text();
-            if (text.trim().startsWith("<")) return; // تجاهل أخطاء الحظر
-
+            if (text.trim().startsWith("<")) return;
             const data = JSON.parse(text);
             displaySuggestions(data);
         } catch (err) {
@@ -304,29 +350,35 @@ document.addEventListener('DOMContentLoaded', async () => {
     function displaySuggestions(results) {
         if (!search.suggestionsList) return;
         search.suggestionsList.innerHTML = '';
-        
         if (!results || results.length === 0) { 
             search.suggestionsList.style.display = 'none'; 
             return; 
         }
-
         results.forEach(item => {
+            const t = getT();
             const addr = item.address || {};
             const city = addr.city || addr.town || addr.village || item.name;
             const cleanName = addr.country ? `${city}، ${addr.country}` : city;
-
             const li = document.createElement('li');
             li.className = 'suggestion-item';
-            li.innerHTML = `<span class="loc-icon">📍</span><span class="loc-text">${cleanName}</span>`;
+            const iconSpan = document.createElement('span');
+            iconSpan.className = 'loc-icon';
+            iconSpan.textContent = '📍';
+            const textSpan = document.createElement('span');
+            textSpan.className = 'loc-text';
+            textSpan.textContent = cleanName;
+            li.appendChild(iconSpan);
+            li.appendChild(textSpan);
             li.onclick = () => {
                 search.suggestionsList.style.display = 'none';
-                showConfirm(modal, 'تأكيد', `اعتماد: <strong>${cleanName}</strong>؟`).then(ok => {
+                showConfirm(modal, t.lblConfirm, `${t.msgConfirmCity} <strong>${cleanName}</strong>؟`).then(ok => {
                     if(ok) handleLocationSelection(item.lat, item.lon, cleanName);
                 });
             };
             search.suggestionsList.appendChild(li);
         });
         search.suggestionsList.style.display = 'block';
+        search.suggestionsList.classList.remove('hidden');
     }
 
     async function handleLocationSelection(lat, lon, name) {
@@ -341,16 +393,50 @@ document.addEventListener('DOMContentLoaded', async () => {
                 await loadMainView(locObj);
             } else throw new Error("API Error");
         } catch (err) {
-            showToast(modal, "خطأ", "فشل الاتصال", "⚠️");
+            const t = getT();
+            showToast(modal, t.lblError, t.msgSearchError, "⚠️");
             switchView('onboarding', views);
         }
     }
 
-    /* =========================================
-       (د) إدارة الأحداث (Event Listeners)
-       ========================================= */
+    // --- إدارة الأحداث ---
 
-    // 1. البحث
+    const init = async () => {
+        try {
+            switchView('loading', views);
+            
+            const settings = await getFromStorage(STORAGE_KEYS.SETTINGS) || {};
+            const lang = settings.language || 'ar';
+            applyLanguage(lang);
+
+            const loc = await getFromStorage(STORAGE_KEYS.USER_LOCATION);
+            if (loc) {
+                await loadMainView(loc);
+                setInterval(updateUI, 1000);
+            } else {
+                switchView('onboarding', views);
+            }
+            
+            await updateAudioStatusLabels();
+
+        } catch (e) {
+            console.error(e);
+            switchView('onboarding', views);
+        }
+    };
+
+    const btnLangOnboarding = document.getElementById('btn-toggle-lang-onboarding');
+    if (btnLangOnboarding) {
+        btnLangOnboarding.onclick = async () => {
+            const isArabic = document.documentElement.lang === 'ar' || document.body.lang === 'ar';
+            const currentLang = isArabic ? 'en' : 'ar';
+            applyLanguage(currentLang);
+            const settings = await getFromStorage(STORAGE_KEYS.SETTINGS) || {};
+            settings.language = currentLang;
+            await saveToStorage(STORAGE_KEYS.SETTINGS, settings);
+        };
+    }
+
     if (search.cityInput) {
         search.cityInput.addEventListener('input', (e) => {
             const q = e.target.value.trim();
@@ -361,8 +447,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             searchDebounceTimer = setTimeout(() => fetchCitySuggestions(q), 300);
         });
-        
-        // إخفاء القائمة عند النقر خارجها
         document.addEventListener('click', (e) => {
             if (search.suggestionsList && !search.cityInput.contains(e.target) && !search.suggestionsList.contains(e.target)) {
                 search.suggestionsList.style.display = 'none';
@@ -370,105 +454,97 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // 2. البحث اليدوي
     if (search.btnManual) {
         search.btnManual.onclick = async () => {
+            const t = getT();
             const q = search.cityInput?.value.trim();
             if(!q) return;
-            
             const btn = search.btnManual;
             const txt = btn.textContent;
             btn.textContent = "..."; btn.disabled = true;
-
             try {
                 const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1&addressdetails=1&email=${EMAIL_ID}`;
                 const res = await fetch(url);
                 const text = await res.text();
-                
                 if(text.startsWith("<")) throw new Error("Blocked");
                 const data = JSON.parse(text);
-
                 if (data.length > 0) {
                     const item = data[0];
                     const addr = item.address || {};
                     const name = `${addr.city || addr.town || item.name}، ${addr.country || ''}`;
-                    if(await showConfirm(modal, 'تأكيد', `هل تختار: ${name}؟`)) {
+                    if(await showConfirm(modal, t.lblConfirm, `${t.msgConfirmCity} ${name}؟`)) {
                         handleLocationSelection(item.lat, item.lon, name);
                     }
                 } else {
-                    showToast(modal, "تنبيه", "لم يتم العثور على المدينة", "🔍");
+                    showToast(modal, t.lblWarning, t.msgCityNotFound, "🔍");
                 }
             } catch {
-                showToast(modal, "خطأ", "تعذر البحث", "❌");
+                showToast(modal, t.lblError, t.msgSearchError, "❌");
             } finally {
                 btn.textContent = txt; btn.disabled = false;
             }
         };
     }
 
-    // 3. البحث التلقائي
     if (search.btnAuto) {
         search.btnAuto.onclick = async () => {
+            const t = getT();
             const btn = search.btnAuto;
             const txt = btn.textContent;
-            btn.textContent = "جاري التحديد..."; btn.disabled = true;
-
+            btn.textContent = "..."; btn.disabled = true;
             try {
                 const coords = await getGeolocation();
                 const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${coords.lat}&lon=${coords.lng}&addressdetails=1&email=${EMAIL_ID}`;
                 const res = await fetch(url);
                 const text = await res.text();
                 if (text.startsWith("<")) throw new Error("Blocked");
-                
                 const data = JSON.parse(text);
                 const addr = data.address;
                 const name = `${addr.city || addr.town || data.name}، ${addr.country || ''}`;
-
-                // هنا نستخدم handleLocationSelection مباشرة لأن showConfirm يسبب مشاكل أحياناً في التلقائي
                 handleLocationSelection(coords.lat, coords.lng, name);
-                showToast(modal, "نجاح", `تم تحديد: ${name}`, "📍");
-
+                showToast(modal, t.lblSuccess, t.msgAutoLocateSuccess + name, "📍");
             } catch (err) {
                 console.error(err);
-                showToast(modal, "خطأ", "فشل تحديد الموقع التلقائي", "⚠️");
+                showToast(modal, t.lblError, t.msgAutoLocateError, "⚠️");
             } finally {
                 btn.textContent = txt; btn.disabled = false;
             }
         };
     }
 
-    // 4. حفظ الإعدادات (مع الإصلاح)
     if (settingsUI.btnSave) {
         settingsUI.btnSave.onclick = async () => {
+            const t = getT();
             const btn = settingsUI.btnSave;
             if (btn.dataset.processing === "true") return;
-            
             btn.dataset.processing = "true";
             const txt = btn.textContent;
-            btn.textContent = "جاري الحفظ...";
+            btn.textContent = "...";
             btn.style.opacity = "0.7";
-
             try {
-                await saveToStorage(STORAGE_KEYS.SETTINGS, {
+                const newSettings = {
                     language: settingsUI.langSelect?.value || 'ar',
                     adhanSound: settingsUI.toggleAdhan?.checked ?? true,
-                    enableSunrise: settingsUI.toggleSunrise?.checked ?? false,
+                    enableSunrise: settingsUI.toggleSunrise?.checked ?? true,
                     fullscreenIqama: settingsUI.toggleFullscreen?.checked ?? false,
-                    adhkarEnabled: settingsUI.toggleAdhkar?.checked ?? false,
+                    adhkarEnabled: settingsUI.toggleAdhkar?.checked ?? true,
                     preAdhanMinutes: +(settingsUI.inputPreTime?.value || 15),
-                    iqamaMinutes: +(settingsUI.inputIqamaTime?.value || 25),
+                    iqamaMinutes: +(settingsUI.inputIqamaTime?.value || 10),
                     adhkarInterval: +(settingsUI.inputAdhkarTime?.value || 30)
-                });
+                };
+                await saveToStorage(STORAGE_KEYS.SETTINGS, newSettings);
+                lastLanguage = null; 
+                applyLanguage(newSettings.language);
+                
+                await updateAudioStatusLabels();
 
                 chrome.runtime.sendMessage({ action: 'RESHEDULE_ALARMS' });
                 const loc = await getFromStorage(STORAGE_KEYS.USER_LOCATION);
                 if(loc) await loadMainView(loc);
-                
-                await showToast(modal, "تم", "تم حفظ الإعدادات", "✅");
+                await showToast(modal, t.lblSuccess, t.msgSaved, "✅");
                 settingsUI.btnClose?.click();
-
             } catch (e) {
-                showToast(modal, "خطأ", "فشل الحفظ", "❌");
+                showToast(modal, t.lblError, t.msgSaveError, "❌");
             } finally {
                 btn.textContent = txt;
                 btn.style.opacity = "1";
@@ -477,54 +553,57 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
     }
 
-    // 5. زر إعادة الضبط (مع المودال)
     if (settingsUI.btnReset) {
         settingsUI.btnReset.onclick = async (e) => {
+            const t = getT();
             e.preventDefault();
-            const ok = await showConfirm(modal, "تحذير", "مسح الموقع والبيانات؟", "🗑️");
+            const ok = await showConfirm(modal, t.lblWarning, t.msgResetConfirm, "🗑️");
             if (ok) {
                 await chrome.storage.local.remove([STORAGE_KEYS.USER_LOCATION, STORAGE_KEYS.PRAYER_TIMES]);
                 if(views.settings) views.settings.classList.remove('active');
                 switchView('onboarding', views);
-                showToast(modal, "تم", "تمت إعادة الضبط", "✅");
+                showToast(modal, t.lblSuccess, t.msgResetDone, "✅");
             }
         };
     }
 
-    // 6. فتح الإعدادات (حل مشكلة السكرول)
     if (mainUI.btnSettings) {
         mainUI.btnSettings.onclick = async () => {
             const s = await getFromStorage(STORAGE_KEYS.SETTINGS) || {};
-            // تعبئة القيم...
+            
             if(settingsUI.langSelect) settingsUI.langSelect.value = s.language || 'ar';
             if(settingsUI.toggleAdhan) settingsUI.toggleAdhan.checked = s.adhanSound !== false;
-            // ... بقية الحقول ...
             
+            if(settingsUI.toggleSunrise) settingsUI.toggleSunrise.checked = s.enableSunrise !== false;
+            if(settingsUI.inputIqamaTime) settingsUI.inputIqamaTime.value = s.iqamaMinutes || 10;
+            if(settingsUI.toggleAdhkar) settingsUI.toggleAdhkar.checked = s.adhkarEnabled !== false;
+
+            if(settingsUI.toggleFullscreen) settingsUI.toggleFullscreen.checked = s.fullscreenIqama || false;
+            if(settingsUI.inputPreTime) settingsUI.inputPreTime.value = s.preAdhanMinutes || 15;
+            if(settingsUI.inputAdhkarTime) settingsUI.inputAdhkarTime.value = s.adhkarInterval || 30;
+
+            await updateAudioStatusLabels();
+
             if(views.settings) {
                 views.settings.classList.remove('hidden');
-                views.settings.scrollTop = 0; // 🔥 إعادة السكرول للأعلى
+                views.settings.scrollTop = 0;
                 requestAnimationFrame(() => views.settings.classList.add('active'));
             }
         };
     }
 
-    // 7. زر المصحف
-if (mainUI.btnQuran) {
+    if (mainUI.btnQuran) {
         mainUI.btnQuran.onclick = async () => {
+            const t = getT();
             try {
-                // نرسل رسالة للتبويب الحالي: "يا صفحة، افتحي المصحف"
                 const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-                
                 if (tabs[0]) {
-                    // نتأكد أن الصفحة ليست صفحة نظام (مثل الإعدادات)
                     if (tabs[0].url.startsWith("chrome://") || tabs[0].url.startsWith("edge://")) {
-                        showToast(modal, "تنبيه", "لا يعمل المصحف في صفحات النظام.<br>افتح موقعاً عادياً.", "⚠️");
+                        showToast(modal, t.lblWarning, t.msgQuranSystem, "⚠️");
                         return;
                     }
-
-                    // إرسال الأمر
                     chrome.tabs.sendMessage(tabs[0].id, { action: "OPEN_QURAN_MODAL" });
-                    window.close(); // إغلاق الإضافة
+                    window.close();
                 }
             } catch (e) {
                 console.error("Error opening Quran:", e);
@@ -532,7 +611,6 @@ if (mainUI.btnQuran) {
         };
     }
 
-    // 8. إغلاق الإعدادات
     if (settingsUI.btnClose) {
         settingsUI.btnClose.onclick = () => {
             if(views.settings) {
@@ -542,72 +620,71 @@ if (mainUI.btnQuran) {
         };
     }
 
-    // 9. إعداد رفع الملفات (مع التحقق من الحجم)
+    if (settingsUI.langSelect) {
+        settingsUI.langSelect.onchange = (e) => {
+            applyLanguage(e.target.value);
+            updateAudioStatusLabels();
+        };
+    }
+
+    // 🔥 دالة رفع الملفات مع التحديث المركزي (الحل النهائي)
     const setupUpload = (btn, input, reset, status, key) => {
         if(btn && input) {
-            btn.onclick = () => input.click();
+            btn.onclick = () => {
+                input.value = ''; // تفريغ الزر
+                input.click();
+            };
             
             input.onchange = (e) => {
+                const t = getT();
                 const f = e.target.files[0];
                 if(!f) return;
 
-                // 1. فحص الحجم أولاً (قبل أي شيء)
                 const MAX_SIZE_MB = 2;
                 const MAX_BYTES = MAX_SIZE_MB * 1024 * 1024;
 
                 if (f.size > MAX_BYTES) {
-                    // إذا كبير: نلغي العملية فوراً ولا نلمس الملف القديم
-                    showToast(modal, "حجم الملف كبير", `يجب أن يكون أقل من ${MAX_SIZE_MB} ميجابايت.<br>لم يتم تغيير الملف الحالي.`, "⚠️");
-                    input.value = ""; // تنظيف الخانة
-                    return; // 🛑 توقف هنا (الملف القديم في الأمان)
+                    showToast(modal, t.lblWarning, t.msgFileTooBig, "⚠️");
+                    input.value = ""; 
+                    return;
                 }
 
-                // 2. إذا الحجم مناسب: نبدأ الاستبدال
                 const r = new FileReader();
-                
-                // تغيير النص ليعرف المستخدم أننا نعمل
-                if(status) status.textContent = "جاري الاستبدال...";
+                if(status) status.textContent = t.btnUpload || "...";
 
                 r.onload = async (ev) => {
                     try {
-                        // هنا يتم حذف القديم ووضع الجديد تلقائياً
                         await saveToStorage(key, ev.target.result);
                         
-                        if(status) { 
-                            status.textContent = "مخصص"; 
-                            status.style.color = "green"; 
-                        }
-                        showToast(modal, "تم", "تم اعتماد الملف الجديد بنجاح", "✅");
+                        // 🔥 استدعاء الدالة المركزية لتحديث الواجهة فوراً
+                        await updateAudioStatusLabels();
+
+                        showToast(modal, t.lblSuccess, t.msgFileSaved, "✅");
                     } catch (err) {
-                        console.error("Storage Error:", err);
-                        // معالجة حالة امتلاء الذاكرة
                         if (err.message && err.message.includes("QUOTA")) {
-                            showToast(modal, "مساحة غير كافية", "الذاكرة ممتلئة، حاول حذف ملفات أخرى.", "❌");
+                            showToast(modal, t.lblError, t.msgQuotaError, "❌");
                         } else {
-                            showToast(modal, "خطأ", "فشل الحفظ", "❌");
+                            showToast(modal, t.lblError, t.msgFileError, "❌");
                         }
-                        // في حال الفشل، نظرياً الملف القديم قد يكون تأثر أو لا حسب المتصفح،
-                        // لكن عادة set هي عملية ذرية (يا تنجح كلها يا تفشل كلها).
-                        if(status) status.textContent = "خطأ";
+                        if(status) status.textContent = t.lblError;
                     }
                 };
                 r.readAsDataURL(f);
             };
         }
 
-        // زر استعادة الافتراضي (حذف المخصص)
         if(reset) {
             reset.onclick = async () => {
+                const t = getT();
                 try {
                     await removeFromStorage([key]);
-                    if(status) { 
-                        status.textContent = "الافتراضي"; 
-                        status.style.color = "#666"; 
-                    }
-                    showToast(modal, "تم", "تم الرجوع للصوت الأصلي", "↺");
+                    
+                    // 🔥 تحديث مركزي
+                    await updateAudioStatusLabels();
+
+                    showToast(modal, t.lblSuccess, t.msgDefaultRestored, "↺");
                 } catch (e) {
-                    console.error("Error resetting file:", e);
-                    showToast(modal, "خطأ", "فشل الاستعادة", "❌");
+                    showToast(modal, t.lblError, t.msgRestoreError, "❌");
                 }
             };
         }
@@ -616,10 +693,6 @@ if (mainUI.btnQuran) {
     setupUpload(settingsUI.btnUploadAdhan, settingsUI.inputUploadAdhan, settingsUI.btnResetAdhan, settingsUI.statusAdhan, STORAGE_KEYS.CUSTOM_ADHAN);
     setupUpload(settingsUI.btnUploadIqama, settingsUI.inputUploadIqama, settingsUI.btnResetIqama, settingsUI.statusIqama, STORAGE_KEYS.CUSTOM_IQAMA);
 
-    /* =========================================
-       (و) دوال المودال الداخلية (لضمان التوافق مع CSS)
-       ========================================= */
-    
     function showConfirm(els, title, msg, icon = "ℹ️") {
         return new Promise(resolve => {
             const { overlay, title: t, message: m, icon: i, confirmBtns, alertBtns, btnYes, btnNo } = els;
@@ -654,6 +727,11 @@ if (mainUI.btnQuran) {
             const { overlay, title: t, message: m, icon: i, confirmBtns, alertBtns, btnOk } = els;
             if(!overlay) return resolve();
 
+            if (currentToastTimeout) {
+                clearTimeout(currentToastTimeout);
+                currentToastTimeout = null;
+            }
+
             if(t) t.textContent = title;
             if(m) m.innerHTML = msg;
             if(i) i.textContent = icon;
@@ -674,35 +752,23 @@ if (mainUI.btnQuran) {
             if(btnOk) btnOk.onclick = close;
             overlay.onclick = (e) => { if(e.target === overlay) close(); };
 
-            if(title !== "خطأ") setTimeout(() => {
-                if(overlay.classList.contains('show') && confirmBtns.classList.contains('hidden')) close();
-            }, 2500);
+            const currentT = getT();
+            const isWarning = title === currentT.lblWarning || title === currentT.lblError || icon === "⚠️" || icon === "❌";
+            
+            if(!isWarning) {
+                currentToastTimeout = setTimeout(() => {
+                    if(overlay.classList.contains('show') && confirmBtns.classList.contains('hidden')) close();
+                }, 2500);
+            }
         });
     }
 
-    // التشغيل الأولي
-    const init = async () => {
-        try {
-            switchView('loading', views);
-            const loc = await getFromStorage(STORAGE_KEYS.USER_LOCATION);
-            if (loc) {
-                await loadMainView(loc);
-                setInterval(updateUI, 1000);
-                startLiveHeaderUpdate();
-            } else {
-                switchView('onboarding', views);
-            }
-        } catch (e) {
-            console.error(e);
-            switchView('onboarding', views);
-        }
-    };
-
     init();
 
-    window.addEventListener('unload', () => {
+    window.addEventListener('pagehide', () => {
         if (timerInterval) clearInterval(timerInterval);
         if (headerUpdateInterval) clearInterval(headerUpdateInterval);
         if (searchDebounceTimer) clearTimeout(searchDebounceTimer);
+        if (currentToastTimeout) clearTimeout(currentToastTimeout);
     });
 });

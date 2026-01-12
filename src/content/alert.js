@@ -158,7 +158,26 @@ if (typeof window.sakinaAlertInitialized === 'undefined') {
             };
         }
 
-        const duration = data.isFullscreen ? 300000 : 25000;
+let duration;
+        
+        if (data.isFullscreen) {
+            duration = 300000; // 5 دقائق
+        } else if (data.type === 'ADHAN' || data.type === 'IQAMA') {
+            duration = 240000; // 4 دقائق
+        } else if (data.type === 'PRE' && data.timerData) {
+            // 🔥 المنطق الجديد هنا:
+            if (data.stayUntilAdhan) {
+                // إذا وصلنا أمر بالبقاء (لأن الوقت قصير أو جاء موعد الدقيقتين)
+                // نجعل المدة تساوي الوقت المتبقي للأذان + 2 ثانية زيادة
+                duration = (data.timerData.targetTime - Date.now()) + 2000;
+            } else {
+                // التنبيه المبكر (يظهر ويختفي)
+                duration = 25000; 
+            }
+        } else {
+            duration = 25000; 
+        }
+
         setTimeout(() => {
             if (document.body.contains(overlay)) closeAlert(overlay);
         }, duration);

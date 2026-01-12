@@ -6,25 +6,29 @@
     <title>Sakina | سكينة</title>
     <link rel="stylesheet" href="popup.css">
     <link rel="stylesheet" href="../content/quran.css">
-<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&family=Amiri:wght@700&display=swap" rel="stylesheet">
 </head>
 <body>
 
     <div id="loading-view" class="view">
         <div class="loader"></div>
-        <p>جاري تحميل البيانات...</p>
+        <p id="loading-text">جاري تحميل البيانات...</p>
     </div>
 
     <div id="onboarding-view" class="view hidden">
         <div class="welcome-card">
+            <button id="btn-toggle-lang-onboarding" style="position: absolute; top: 15px; left: 15px; background: transparent; border: 1px solid #444; color: #888; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 12px;">English</button>
+
             <img src="../../assets/icon128.png" alt="Logo" class="logo-img">
-            <h2>مرحباً بك</h2>
-            <p>لضبط مواقيت الصلاة بدقة</p>
+            <h2 id="txt-welcome-title">مرحباً بك</h2>
+            <p id="txt-welcome-desc">لضبط مواقيت الصلاة بدقة</p>
             
-            <button id="btn-auto-locate" class="btn primary-btn">📍 تحديد تلقائي (GPS)</button>
+            <button id="btn-auto-locate" class="btn primary-btn">
+                <span>📍</span> <span id="txt-btn-auto">تحديد تلقائي (GPS)</span>
+            </button>
             
-            <div class="divider">أو بحث يدوي</div>
+            <div class="divider" id="txt-or">أو بحث يدوي</div>
             
             <div class="search-box">
                 <div class="input-wrapper" style="position: relative;">
@@ -37,7 +41,7 @@
         </div>
     </div>
 
-<div id="main-view" class="view hidden">
+    <div id="main-view" class="view hidden">
         <header class="compact-header">
             <div class="header-top">
                 <button id="btn-settings" class="settings-btn" title="الإعدادات">⚙️</button>
@@ -57,33 +61,33 @@
             </div>
         </header>
 
-    <div class="main-content-wrapper">
-        
-        <div id="countdown-card" class="countdown-card is-night">
-            <div class="atmosphere-container">
-                <div class="stars-layer"></div>
-                <div class="clouds-layer"><div class="cloud cloud-1"></div></div>
-            </div>
+        <div class="main-content-wrapper">
             
-            <div class="card-content">
-                <p class="status-text" id="date-display">الصلاة القادمة</p>
-                <div id="next-prayer-name">...</div>
-                <div id="countdown">--:--:--</div>
+            <div id="countdown-card" class="countdown-card is-night">
+                <div class="atmosphere-container">
+                    <div class="stars-layer"></div>
+                    <div class="clouds-layer"><div class="cloud cloud-1"></div></div>
+                </div>
+                
+                <div class="card-content">
+                    <p class="status-text" id="date-display">الصلاة القادمة</p>
+                    <div id="next-prayer-name">...</div>
+                    <div id="countdown">--:--:--</div>
+                </div>
             </div>
+
+            <div class="prayers-list" id="prayers-list">
+            </div>
+
+            <button id="btn-open-quran" class="quran-btn-compact">
+                📖 المصحف الشريف
+            </button>
         </div>
-
-        <div class="prayers-list" id="prayers-list">
-            </div>
-
-        <button id="btn-open-quran" class="quran-btn-compact">
-            📖 المصحف الشريف
-        </button>
     </div>
-</div>
 
     <div id="settings-view" class="view hidden">
         <div class="settings-header">
-            <h3>الإعدادات</h3>
+            <h3 id="txt-settings-title">الإعدادات</h3>
             <button id="btn-close-settings" class="close-btn" title="إغلاق">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
@@ -92,16 +96,16 @@
         <div class="settings-content">
             
             <div class="settings-section">
-                <h4 class="section-title">عام</h4>
+                <h4 class="section-title" id="sec-general">عام</h4>
                 <div class="setting-group">
-                    <label>اللغة</label>
+                    <label id="lbl-language">اللغة</label>
                     <select id="language-select" class="dropdown-select">
                         <option value="ar">العربية</option>
                         <option value="en">English</option>
                     </select>
                 </div>
                 <div class="setting-group checkbox-group">
-                    <label for="toggle-fullscreen-iqama">شاشة كاملة وقت الإقامة</label>
+                    <label for="toggle-fullscreen-iqama" id="lbl-fullscreen">شاشة كاملة وقت الإقامة</label>
                     <label class="switch">
                         <input type="checkbox" id="toggle-fullscreen-iqama">
                         <span class="slider"></span>
@@ -110,17 +114,17 @@
             </div>
 
             <div class="settings-section">
-                <h4 class="section-title">التنبيهات</h4>
+                <h4 class="section-title" id="sec-alerts">التنبيهات</h4>
                 <div class="setting-group checkbox-group">
-                    <label for="toggle-sunrise">تنبيه الشروق</label>
+                    <label for="toggle-sunrise" id="lbl-sunrise">تنبيه الشروق</label>
                     <label class="switch">
-                        <input type="checkbox" id="toggle-sunrise">
+                        <input type="checkbox" id="toggle-sunrise" checked>
                         <span class="slider"></span>
                     </label>
                 </div>
                 
                 <div class="setting-group checkbox-group">
-                    <label for="toggle-adhan-sound">تشغيل صوت الأذان</label>
+                    <label for="toggle-adhan-sound" id="lbl-adhan-sound">تشغيل صوت الأذان</label>
                     <label class="switch">
                         <input type="checkbox" id="toggle-adhan-sound" checked>
                         <span class="slider"></span>
@@ -129,40 +133,40 @@
             </div>
 
             <div class="settings-section">
-                <h4 class="section-title">الأذكار</h4>
+                <h4 class="section-title" id="sec-adhkar">الأذكار</h4>
                 <div class="setting-group checkbox-group">
-                    <label for="toggle-adhkar">تفعيل الأذكار التلقائية</label>
+                    <label for="toggle-adhkar" id="lbl-adhkar-enable">تفعيل الأذكار التلقائية</label>
                     <label class="switch">
-                        <input type="checkbox" id="toggle-adhkar">
+                        <input type="checkbox" id="toggle-adhkar" checked>
                         <span class="slider"></span>
                     </label>
                 </div>
                 <div class="setting-group compact">
-                    <label for="input-adhkar-time">وقت التكرار (دقيقة)</label>
+                    <label for="input-adhkar-time" id="lbl-adhkar-time">وقت التكرار (دقيقة)</label>
                     <input type="number" id="input-adhkar-time" min="5" max="300" value="30">
                 </div>
             </div>
 
             <div class="settings-section">
-                <h4 class="section-title">التوقيت</h4>
+                <h4 class="section-title" id="sec-timing">التوقيت</h4>
                 <div class="time-inputs-row">
                     <div class="setting-group compact">
-                        <label for="input-pre-time">تنبيه قبل (د)</label>
+                        <label for="input-pre-time" id="lbl-pre-time">تنبيه قبل (د)</label>
                         <input type="number" id="input-pre-time" min="0" max="60" value="15">
                     </div>
                     <div class="setting-group compact">
-                        <label for="input-iqama-time">انتظار الإقامة (د)</label>
-                        <input type="number" id="input-iqama-time" min="0" max="60" value="25">
+                        <label for="input-iqama-time" id="lbl-iqama-time">انتظار الإقامة (د)</label>
+                        <input type="number" id="input-iqama-time" min="0" max="60" value="15">
                     </div>
                 </div>
             </div>
             
             <div class="settings-section audio-card">
-                <h4 class="section-title" style="color: var(--primary-color);">تخصيص الأصوات</h4>
+                <h4 class="section-title" style="color: var(--primary-color);" id="sec-audio">تخصيص الأصوات</h4>
                 
                 <div class="audio-row">
                     <div class="audio-info">
-                        <span class="audio-label">الأذان</span>
+                        <span class="audio-label" id="lbl-audio-adhan">الأذان</span>
                         <span id="status-adhan" class="audio-status">الافتراضي</span>
                     </div>
                     <div class="audio-actions">
@@ -176,7 +180,7 @@
 
                 <div class="audio-row">
                     <div class="audio-info">
-                        <span class="audio-label">الإقامة</span>
+                        <span class="audio-label" id="lbl-audio-iqama">الإقامة</span>
                         <span id="status-iqama" class="audio-status">الافتراضي</span>
                     </div>
                     <div class="audio-actions">
@@ -194,20 +198,21 @@
         </div>
     </div>
 
-    <div id="custom-modal" class="modal-overlay" style="display: none;"> <div class="modal-card">
-                <span id="modal-icon" class="modal-icon">ℹ️</span>
-                <h3 id="modal-title">عنوان</h3>
-                <p id="modal-message">نص الرسالة...</p>
-                
-                <div id="modal-actions-confirm" class="modal-actions hidden">
-                    <button id="btn-modal-yes" class="modal-btn btn-yes">نعم</button>
-                    <button id="btn-modal-no" class="modal-btn btn-no">لا</button>
-                </div>
-                
-                <div id="modal-actions-alert" class="modal-actions hidden">
-                    <button id="btn-modal-ok" class="modal-btn btn-yes">موافق</button>
-                </div>
+    <div id="custom-modal" class="modal-overlay" style="display: none;">
+        <div class="modal-card">
+            <span id="modal-icon" class="modal-icon">ℹ️</span>
+            <h3 id="modal-title">عنوان</h3>
+            <p id="modal-message">نص الرسالة...</p>
+            
+            <div id="modal-actions-confirm" class="modal-actions hidden">
+                <button id="btn-modal-yes" class="modal-btn btn-yes">نعم</button>
+                <button id="btn-modal-no" class="modal-btn btn-no">لا</button>
             </div>
+            
+            <div id="modal-actions-alert" class="modal-actions hidden">
+                <button id="btn-modal-ok" class="modal-btn btn-yes">موافق</button>
+            </div>
+        </div>
     </div>
 
     <script type="module" src="popup.js"></script>
