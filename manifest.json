@@ -1,17 +1,20 @@
 {
   "manifest_version": 3,
-  "name": "Sakina | سكينة",
+  "name": "Sakina: Prayer Times, Quran & Adhan - سكينة",
   "short_name": "Sakina",
   "version": "1.0.0",
-  "description": "رفيقك للذكر والصلاة أثناء التصفح - Your companion for prayer and dhikr",
+  "description": "Accurate Prayer times, Adhan alerts, Qibla direction, and Holy Quran reading. مواقيت الصلاة، الأذان، وقراءة القرآن الكريم.",
   "permissions": [
-      "storage",
-      "alarms",
-      "activeTab",
-      "geolocation",
-      "offscreen",
-      "scripting" 
-    ],
+    "storage",
+    "alarms",
+    "activeTab",
+    "geolocation",
+    "offscreen",
+    "scripting"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
   "background": {
     "service_worker": "src/background/service-worker.js",
     "type": "module"
