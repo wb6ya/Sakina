@@ -39,13 +39,15 @@ export const TRANSLATIONS = {
         lblAudioIqama: "الإقامة",
         lblAdhkarEnable: "تفعيل الأذكار التلقائية",
         lblAdhkarTime: "وقت التكرار (دقيقة)",
-        
+
         // الأزرار والحالات
         statusDefault: "الافتراضي",
         statusCustom: "مخصص",
         save: "حفظ الإعدادات",
         reset: "تغيير الموقع",
         btnUpload: "جاري الرفع...",
+        btnSupport: "دعم المطور (قهوة)",
+
         
         // المودال والأزرار العامة
         btnYes: "نعم",
@@ -150,6 +152,7 @@ export const TRANSLATIONS = {
         save: "Save Settings",
         reset: "Change Location",
         btnUpload: "Uploading...",
+        btnSupport: "Buy me a Coffee",
         
         // Modals & General Buttons
         btnYes: "Yes",

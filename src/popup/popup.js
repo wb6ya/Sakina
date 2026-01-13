@@ -71,7 +71,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         btnUploadAdhan: getEl('btn-upload-adhan'), inputUploadAdhan: getEl('upload-adhan'), 
         btnResetAdhan: getEl('btn-reset-adhan'), statusAdhan: getEl('status-adhan'),
         btnUploadIqama: getEl('btn-upload-iqama'), inputUploadIqama: getEl('upload-iqama'), 
-        btnResetIqama: getEl('btn-reset-iqama'), statusIqama: getEl('status-iqama')
+        btnResetIqama: getEl('btn-reset-iqama'), statusIqama: getEl('status-iqama'),
+    };
+
+// تعريف عناصر نافذة الدعم
+    const supportUI = {
+        // لاحظ هنا: استخدمنا ID الزر الجديد في الهيدر
+        btnOpen: getEl('btn-support-header'), 
+        modal: getEl('support-modal'),
+        btnKofi: getEl('btn-open-kofi'),
+        btnBmc: getEl('btn-open-bmc'),
+        btnClose: getEl('btn-close-support-modal')
     };
 
     const modal = {
@@ -321,6 +331,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (settingsUI.btnSave) settingsUI.btnSave.textContent = t.save;
         if (settingsUI.btnReset) settingsUI.btnReset.textContent = t.reset;
+        if (settingsUI.btnSupport) {
+             const txtSpan = document.getElementById('txt-support');
+             if(txtSpan) txtSpan.textContent = t.btnSupport;
+        }
+
+        if (supportUI.txtMain) supportUI.txtMain.textContent = t.btnSupport || "دعم المطور";
+        if (supportUI.txtTitle) supportUI.txtTitle.textContent = (lang === 'ar') ? "اختر طريقة الدعم" : "Choose Support Method";
+        if (supportUI.btnClose) supportUI.btnClose.textContent = (lang === 'ar') ? "إلغاء" : "Cancel";
+
         if (modal.btnYes) modal.btnYes.textContent = t.btnYes;
         if (modal.btnNo) modal.btnNo.textContent = t.btnNo;
         if (modal.btnOk) modal.btnOk.textContent = t.btnOk;
@@ -566,6 +585,84 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         };
     }
+// --- 13. منطق نافذة الدعم (Support Logic) ---
+    if (supportUI.btnOpen) {
+        
+        // فتح النافذة
+        supportUI.btnOpen.onclick = (e) => {
+            e.preventDefault();
+            console.log("Support button clicked!"); // للتأكد أن الزر يعمل
+
+            if (supportUI.modal) {
+                // إزالة كلاس الإخفاء
+                supportUI.modal.classList.remove('hidden');
+                
+                // 🔥 حل جذري: إجبار المتصفح على عرض النافذة وتطبيق الستايل
+                supportUI.modal.style.display = 'flex';
+                supportUI.modal.style.opacity = '1';
+                supportUI.modal.style.visibility = 'visible';
+                
+                // رفع الطبقة لتظهر فوق كل شيء
+                supportUI.modal.style.zIndex = '2147483647';
+            } else {
+                console.error("Support Modal element not found!");
+            }
+        };
+
+        // دالة الإغلاق
+        const closeSupport = () => {
+            if (supportUI.modal) {
+                // إضافة كلاس الإخفاء
+                supportUI.modal.classList.add('hidden');
+                
+                // إعادة الستايل للوضع الطبيعي (تفريغ الخصائص المباشرة)
+                supportUI.modal.style.display = '';
+                supportUI.modal.style.opacity = '';
+                supportUI.modal.style.visibility = '';
+                supportUI.modal.style.zIndex = '';
+            }
+        };
+
+        // تفعيل أزرار الإغلاق
+        if (supportUI.btnClose) {
+            supportUI.btnClose.onclick = (e) => {
+                e.preventDefault();
+                closeSupport();
+            };
+        }
+
+        // الإغلاق عند الضغط في الخلفية (خارج البطاقة)
+        if (supportUI.modal) {
+            supportUI.modal.onclick = (e) => {
+                // التأكد أن الضغط تم على الخلفية وليس على البطاقة نفسها
+                if (e.target === supportUI.modal) {
+                    closeSupport();
+                }
+            };
+        }
+
+        // رابط Ko-fi
+        if (supportUI.btnKofi) {
+            supportUI.btnKofi.onclick = (e) => {
+                e.preventDefault();
+                // 🛑 تأكد من استبدال الرابط برابطك الحقيقي
+                chrome.tabs.create({ url: "https://ko-fi.com/sakinaapp" });
+                closeSupport();
+            };
+        }
+
+        // رابط Buy Me a Coffee
+        if (supportUI.btnBmc) {
+            supportUI.btnBmc.onclick = (e) => {
+                e.preventDefault();
+                // 🛑 تأكد من استبدال الرابط برابطك الحقيقي
+                chrome.tabs.create({ url: "https://buymeacoffee.com/sakina.app" });
+                closeSupport();
+            };
+        }
+    } else {
+        console.error("Support Button (btn-support-header) not found!");
+    }
 
     if (mainUI.btnSettings) {
         mainUI.btnSettings.onclick = async () => {
@@ -594,19 +691,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (mainUI.btnQuran) {
         mainUI.btnQuran.onclick = async () => {
-            const t = getT();
-            try {
-                const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-                if (tabs[0]) {
-                    if (tabs[0].url.startsWith("chrome://") || tabs[0].url.startsWith("edge://")) {
-                        showToast(modal, t.lblWarning, t.msgQuranSystem, "⚠️");
-                        return;
-                    }
-                    chrome.tabs.sendMessage(tabs[0].id, { action: "OPEN_QURAN_MODAL" });
-                    window.close();
-                }
-            } catch (e) {
-                console.error("Error opening Quran:", e);
+            const success = await safeSendMessage("OPEN_QURAN_MODAL");
+            
+            if (success) {
+                window.close();
             }
         };
     }
@@ -762,6 +850,35 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         });
     }
+
+
+    // 🔥 دالة مساعدة لإرسال الرسائل بأمان ومعالجة خطأ "Receiving end does not exist"
+    async function safeSendMessage(action, data = {}) {
+        const t = getT();
+        try {
+            const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+            
+            if (!tabs[0] || !tabs[0].id) return false; // ❌ فشل
+
+            const url = tabs[0].url;
+            if (url.startsWith("chrome://") || url.startsWith("edge://") || url.startsWith("about:") || url.includes("chrome.google.com/webstore")) {
+                showToast(modal, t.lblWarning, "لا يمكن تشغيل الإضافة في صفحات النظام أو المتجر.", "⚠️");
+                return false; // ❌ فشل (صفحة نظام)
+            }
+
+            await chrome.tabs.sendMessage(tabs[0].id, { action, ...data });
+            return true; // ✅ نجاح
+
+        } catch (error) {
+            if (error.message.includes("Could not establish connection")) {
+                showToast(modal, "تنبيه", "يرجى <strong>تحديث الصفحة</strong> (Refresh) لتفعيل المصحف.", "🔄");
+            } else {
+                console.error("Error sending message:", error);
+            }
+            return false; // ❌ فشل (حدث خطأ)
+        }
+    }
+
 
     init();
 

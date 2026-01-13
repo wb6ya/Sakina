@@ -122,7 +122,10 @@ async function scheduleNextPrayer(isStartupCheck = false) {
                 if (timeSinceAdhan > 0 && timeSinceAdhan < 5 * 60 * 1000) {
                       triggerAdhanAlert(appSettings, timings, nextPrayerObj, isFriday);
                 } else if (now >= preTime && now < nextPrayerTime) {
-                    showNotification('alertPreTitle', 'alertPreMsg', "PRE", { mode: 'COUNTDOWN', targetTime: nextPrayerTime }, null, prayerKey);
+                    // التحقق إذا كان الوقت قصيراً عند بدء التشغيل أيضاً
+                    const timeToAdhan = nextPrayerTime - now;
+                    const isShortTime = timeToAdhan <= (3 * 60 * 1000);
+                    showNotification('alertPreTitle', 'alertPreMsg', "PRE", { mode: 'COUNTDOWN', targetTime: nextPrayerTime }, null, prayerKey, isShortTime);
                 }
             }
         }
@@ -195,7 +198,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
         // نحسب الوقت المتبقي للأذان بالمللي ثانية
         const timeToAdhan = nextPrayerObj.time.getTime() - now;
         
-        // حد الـ 3 دقائق (180,000 مللي ثانية)
+        // حد الـ 3 دقائق
         const THREE_MINUTES = 3 * 60 * 1000;
         const TWO_MINUTES = 2 * 60 * 1000;
 
@@ -218,12 +221,8 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
 
         // إذا كان الوقت طويلاً (أكثر من 3 دقائق)، نجدول تنبيهاً إضافياً قبل دقيقتين
         if (!isShortTime) {
-            // نحسب متى يجب أن يرن التنبيه الثاني (وقت الأذان - دقيقتين)
             const secondAlertTime = nextPrayerObj.time.getTime() - TWO_MINUTES;
-            
-            // نتأكد أن الوقت المستقبلي منطقي (أكبر من الآن)
             if (secondAlertTime > now) {
-                console.log("Scheduling final pre-prayer alert at -2 mins");
                 chrome.alarms.create(ALARM_NAMES.PRE_PRAYER, { when: secondAlertTime });
             }
         }
@@ -271,9 +270,9 @@ function triggerAdhanAlert(appSettings, timings, prayerObj, isFriday) {
 }
 
 /* ==========================================
-   6. الإشعارات (تم التحديث: الحقن البرمجي)
+   6. الإشعارات (تم الإصلاح: إضافة المعامل stayUntilAdhan)
    ========================================== */
-async function showNotification(titleKey, msgKey, type, timerData, quoteData, prayerKey) {
+async function showNotification(titleKey, msgKey, type, timerData, quoteData, prayerKey, stayUntilAdhan = false) { // 🔥 تم إضافة المعامل هنا
     const settingsData = await chrome.storage.local.get(STORAGE_KEYS.SETTINGS);
     const appSettings = settingsData.app_settings || {};
     const lang = appSettings.language || 'ar';
@@ -299,7 +298,7 @@ async function showNotification(titleKey, msgKey, type, timerData, quoteData, pr
             source: lang === 'en' ? quoteData.source_en : quoteData.source
         } : null,
         isFullscreen: (type === 'IQAMA' && appSettings.fullscreenIqama === true),
-        stayUntilAdhan: stayUntilAdhan,
+        stayUntilAdhan: stayUntilAdhan, // الآن المتغير معرف ولن يسبب خطأ
         btnLabels: { stopAudio: t.btnStopAudio, muted: t.btnMuted, close: t.btnClose }
     };
 
@@ -309,10 +308,12 @@ async function showNotification(titleKey, msgKey, type, timerData, quoteData, pr
     injectAlertToActiveTab(payload);
 
     if (notificationTimeout) clearTimeout(notificationTimeout);
-    notificationTimeout = setTimeout(() => activeNotification = null, payload.isFullscreen ? 300000 : 90000);
+    // إذا كان stayUntilAdhan = true، لا نضع timeout هنا، الـ alert.js سيتولى أمره بناءً على التوقيت
+    // أما إذا لم يكن، نستخدم التوقيت العادي
+    const timeoutDuration = (payload.isFullscreen) ? 300000 : (stayUntilAdhan ? 300000 : 90000); 
+    notificationTimeout = setTimeout(() => activeNotification = null, timeoutDuration);
 }
 
-// دالة الحقن الذكي (بديلة لـ sendToActiveTab)
 // دالة الحقن الذكي (نسخة مصححة للحماية من الخطأ)
 async function injectAlertToActiveTab(payload) {
     try {
@@ -320,10 +321,10 @@ async function injectAlertToActiveTab(payload) {
         
         if (tabs.length === 0) return;
         
-        const tab = tabs[0]; // تبسيط الكود
+        const tab = tabs[0];
         const tabId = tab.id;
 
-        // 🔥 الإصلاح هنا: التحقق من وجود الرابط (!tab.url) قبل فحص محتواه
+        // التحقق من وجود الرابط (!tab.url) قبل فحص محتواه
         if (!tab.url || tab.url.startsWith("chrome://") || tab.url.startsWith("edge://") || tab.url.startsWith("about:")) {
             return;
         }
